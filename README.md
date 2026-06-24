@@ -24,14 +24,14 @@ La demande n'est toutefois mesurée que dans Beloeil et Mont-Saint-Hilaire. Ce c
 
 | Source | Format | CRS | Accès |
 |--------|--------|-----|-------|
-| Réseau piétonnier (OpenStreetMap) | Graphe (GraphML) | EPSG:32188 (MTM 8) | Extrait via OSMnx, reprojeté depuis EPSG:4326 |
-| Points d'intérêt, services essentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:32188 (MTM 8) | Extrait via OSMnx (étiquettes `amenity`, `shop`) |
-| Bâtiments résidentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:32188 (MTM 8) | Extrait via OSMnx (étiquette `building`) |
+| Réseau piétonnier (OpenStreetMap) | Graphe (GraphML) | EPSG:2950 (MTM 8) | Extrait via OSMnx, reprojeté depuis EPSG:4326 |
+| Points d'intérêt, services essentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquettes `amenity`, `shop`) |
+| Bâtiments résidentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquette `building`) |
 | Population et aînés (65 ans et plus) par aire de diffusion | CSV tabulaire | Aucun (table jointe par code d'AD) | Statistique Canada, Recensement 2021 |
-| Limites des aires de diffusion | Shapefile | EPSG:32188 (MTM 8) | Statistique Canada |
-| Limites municipales | Shapefile | EPSG:32188 (MTM 8) | Données Québec |
-| Données complémentaires à OSM | Shapefile / GeoJSON / GeoPackage | EPSG:32188 (MTM 8) | Données Québec, villes |
-| Contraintes territoriales (utilisation du sol) | Raster (GeoTIFF) | EPSG:32188 (MTM 8) | Données Québec |
+| Limites des aires de diffusion | Shapefile | EPSG:2950 (MTM 8) | Statistique Canada |
+| Limites municipales | Shapefile | EPSG:2950 (MTM 8) | Données Québec |
+| Données complémentaires à OSM | Shapefile / GeoJSON / GeoPackage | EPSG:2950 (MTM 8) | Données Québec, villes |
+| Contraintes territoriales (utilisation du sol) | Raster (GeoTIFF) | EPSG:2950 (MTM 8) | Données Québec |
 
 ## Modèle de données
 Ce projet n'utilise pas de serveur de base de données.
@@ -105,7 +105,7 @@ flowchart TD
 ## Librairies principales
 - **osmnx** : téléchargement et modélisation du réseau piétonnier et des points d'intérêt d'OpenStreetMap.
 - **networkx** : plus courts chemins avec l'algorithme de Dijkstra pour mesurer les distances réelles de marche.
-- **geopandas / pandas** : manipulation des données géospatiales et tabulaires, jointures et reprojections (EPSG:32188).
+- **geopandas / pandas** : manipulation des données géospatiales et tabulaires, jointures et reprojections (EPSG:2950).
 - **spopt (PySAL)** : modèle de localisation-allocation à couverture maximale.
 - **folium** : cartes de couverture interactives avant et après optimisation.
 - **matplotlib** : graphiques de performance, dont la courbe de rendement de l'ajout de 1 à 5 services.
@@ -148,3 +148,5 @@ flowchart TD
 ## Difficultés rencontrées
 - **Complétude d'OpenStreetMap.** La qualité des données en milieu périurbain (Beloeil et Mont-Saint-Hilaire) peut varier, pour le réseau comme pour les services. Un croisement avec Données Québec et les inventaires municipaux est planifié pour combler les manques.
 - **Effet de bordure spatiale.** Découper l'analyse strictement aux frontières municipales aurait ignoré des commerces limitrophes essentiels ; la zone tampon règle ce problème, tout en mesurant la demande uniquement dans Beloeil et Mont-Saint-Hilaire.
+- **Agrégation des données de recensement.** La demande est diffusée par aire de diffusion, pas par adresse, alors que le calcul d'accessibilité se fait entre points précis (résidences et services), ce qui introduit une perte de précision à garder en tête.
+- **Choix du facteur de vulnérabilité.** Le facteur est limité aux données disponibles. Un seul critère est retenu (65 ans et plus) par souci de simplicité, alors que plusieurs pourraient être combinés et pondérés. Des dimensions d'offre et de demande plus fines sont aussi ignorées par manque de données.
