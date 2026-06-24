@@ -36,7 +36,9 @@ La demande n'est toutefois mesurée que dans Beloeil et Mont-Saint-Hilaire. Ce c
 ## Modèle de données
 Ce projet n'utilise pas de serveur de base de données.
 
-## Pipeline de traitement ou Architecture
+## Pipeline de traitement
+**Structure du projet évolutive.** L'arborescence suit le principe « un module, une responsabilité » et reprend les catégories du cours. Elle pourra évoluer en cours de route. Des modules très courts et toujours modifiés ensemble pourront être fusionnés, et de nouveaux pourront être ajoutés si une étape se précise.
+
 Le traitement suit une chaîne séquentielle et reproductible. L'accessibilité est mesurée de deux façons complémentaires : une cote par type de service par lieu résidentiel, qui révèle quel service manque et où, et un indicateur de couverture des résidents vulnérables par aire de diffusion, qui pilote l'optimisation. L'optimisation par couverture maximale détermine à la fois où ajouter des services et de quels types.
 ```mermaid
 flowchart TD
