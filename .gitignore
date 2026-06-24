@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# Secrets (cles API, identifiants)
+.env
+
+# Donnees brutes et traitees (regenerees par download_data.py) : garder les dossiers, ignorer leur contenu
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Fichiers volumineux ou binaires (garder de petits echantillons au besoin)
+*.tif
+*.zip
+*.gpkg
+*.graphml
+
+# Systeme et editeur
+.DS_Store
+.ipynb_checkpoints/
+.vscode/
