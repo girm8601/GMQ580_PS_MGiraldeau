@@ -1,0 +1,12 @@
+osmnx
+networkx
+geopandas
+pandas
+shapely
+pyproj
+spopt
+folium
+matplotlib
+pyyaml
+pytest
+pytest-cov
