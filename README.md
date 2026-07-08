@@ -5,7 +5,7 @@
 
 
 ## Problématique
-L'accès aux services essentiels à pied est un enjeu d'autonomie et d'inclusion pour les résidents qui ne disposent pas d'un accès facile à l'automobile. Les personnes âgées (65 ans et plus) en sont le groupe vulnérable candidat principal : plusieurs cessent de conduire tout en demeurant capables de marcher sur de courtes distances. Le facteur de vulnérabilité exact sera confirmé en cours de projet.
+L'accès aux services essentiels à pied est un enjeu d'autonomie et d'inclusion pour les résidents qui ne disposent pas d'un accès facile à l'automobile. Les personnes âgées (65 ans et plus) en sont le groupe vulnérable candidat principal, plusieurs cessent de conduire tout en demeurant capables de marcher sur de courtes distances.
 
 Le projet porte sur Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), séparées par la rivière Richelieu, franchissable seulement aux ponts. Cette barrière structure fortement l'accessibilité piétonne entre les deux rives, ce qui en fait un cas pertinent pour étudier l'équité d'accès.
 
@@ -13,14 +13,14 @@ L'accès aux services ne se limite toutefois pas à la marche, le réseau de tra
 
 Le projet évalue si les résidents les plus dépendants de la marche disposent d'un accès équitable aux services essentiels, afin de déterminer la nature et la localisation des nouveaux services à implanter pour maximiser la couverture. Il reprend et étend, avec l'accord de l'enseignant, le projet de session du cours GMQ210. 
 
-Les résultats concernent les villes visées et les décideurs publics, communautaires et privés. Le projet se limite à un diagnostic prospectif (l'implantation réelle revient aux décideurs) et n'aborde ni les horaires d'ouverture ni un indice de vulnérabilité multicritère. 
+Les résultats concernent les villes visées et les décideurs publics, communautaires et privés. Le projet se limite à un diagnostic prospectif (l'implantation réelle revient aux décideurs) et n'aborde ni les horaires d'ouverture ni un indice de vulnérabilité multicritère.
 
 La demande est analysée à l'échelle de l'aire de diffusion (Recensement 2021).
 
 ## Zone d'étude
-Le territoire couvre Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), séparées par la rivière Richelieu. La demande est analysée à l'échelle de l'aire de diffusion, et les distances à l'échelle du réseau piétonnier. 
+Le territoire couvre Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), séparées par la rivière Richelieu. La demande est analysée à l'échelle de l'aire de diffusion, et les distances à l'échelle du réseau piétonnier.
 
-Une zone tampon incluant les secteurs contigus de McMasterville et d'Otterburn Park sert à extraire le réseau, les services existants et les points d'accès au transport collectif (arrêts et gares), afin d'éviter les effets de bordure. 
+Une zone tampon incluant les secteurs contigus de McMasterville et d'Otterburn Park sert à extraire le réseau, les services existants et les points d'accès au transport collectif (arrêts et gares), afin d'éviter les effets de bordure.
 
 La demande n'est toutefois mesurée que dans Beloeil et Mont-Saint-Hilaire. Ce choix se justifie par la rivière, franchissable seulement aux ponts, qui contraint fortement l'accessibilité piétonne entre les deux rives.
 
@@ -138,7 +138,7 @@ Les paramètres (CRS cible EPSG:2950, zone d'étude, seuils de marche, types de 
 **Avec conda (recommandé)**
 ```bash
 conda env create -f environment.yml
-conda activate gmq580
+conda activate gmq580_ps_mg
 ```
 
 **Avec pip**
@@ -171,7 +171,7 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) rejoue automatiquement `
 
 | Test | Vérifie |
 |------|---------|
-| `test_io.py` | Reprojection correcte vers EPSG:2950 ; lecture/écriture GeoPackage sans perte de CRS |
+| `test_io.py` | Reprojection correcte vers EPSG:2950. Lecture/écriture GeoPackage sans perte de CRS |
 | `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu |
 | `test_accessibility.py` | Cote d'accessibilité par type de service sur données synthétiques |
 | `test_demand.py` | Pondération de la demande par la vulnérabilité (aînés par AD) |
@@ -212,18 +212,19 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) rejoue automatiquement `
 ## Décisions méthodologiques
 - **Réorientation du projet.** Après le constat que la zone était déjà saturée d'arrêts à la demande (ancienne version sur le transport collectif), le projet a évolué vers l'accessibilité aux services essentiels, ce qui permet aussi d'optimiser le type de service à ajouter.
 - **Reprise et extension de GMQ210.** Avec l'accord de l'enseignant, le projet réutilise l'approche d'accessibilité piétonne de GMQ210 (OSM, Dijkstra, cotation par type), à laquelle s'ajoutent la pondération par la vulnérabilité, la barrière fluviale et l'optimisation.
-- **Facteur de vulnérabilité.** Le choix de travail s'arrête sur les 65 ans et plus, une donnée robuste du recensement qui évite les biais des données manquantes et des indices composites. Le facteur exact demeure révisable et sera justifié.
-- **Mesure par la couverture.** La couverture, plutôt que la distance moyenne, est retenue comme indicateur principal ; les seuils de marche seront fixés à partir des paliers de GMQ210 ou de valeurs usuelles comme 400 et 800 mètres.
+- **Facteur de vulnérabilité.** Le choix de travail s'arrête sur les 65 ans et plus, une donnée robuste du recensement qui évite les biais des données manquantes et des indices composites.
+- **Mesure par la couverture.** La couverture, plutôt que la distance moyenne, est retenue comme indicateur principal. Les seuils de marche seront fixés à partir des paliers de GMQ210 et de valeurs plus usuelles comme 400 et 800 mètres par exemple.
 - **Posture diagnostique.** L'optimisation indique où le manque est le plus grand et quel type de service le comblerait le mieux, ce qui sert autant les décideurs publics et communautaires que les acteurs privés.
 - **Intégration du réseau de transport collectif (7 juillet 2026).** L'accès aux services ne se mesure pas uniquement par la marche réelle, les villes à l'étude sont desservies par le réseau d'exo. Le réseau fixe (arrêts d'autobus du GTFS de la CITVR, gares de train) est donc intégré comme dimension complémentaire d'accès, les arrêts et gares agissant comme points d'accès vers les services situés au-delà d'une distance marchable.
 - **Réseau fixe seulement, sans horaires ni temps réel (7 juillet 2026).** Seuls les emplacements des arrêts et des gares sont considérés, sans horaires, fréquences ni temps réel. Les villes sont aussi couvertes par un service de transport à la demande, mais les emplacements des arrêts de ce service ne sont pas diffusés ([exo à la demande](https://exoalademande.exo.quebec/search)). À défaut de cette source, l'analyse se limite au réseau fixe, ce qui garde le traitement reproductible et vérifiable.
-- **Trains pour le volet d'implantation (7 juillet 2026).** Les gares et les lignes de train d'exo alimentent la définition des sites candidats, l'implantation de nouveaux services à proximité des trajets et des gares est jugée pertinente pour maximiser la portée réelle des résidents.
+- **Rôle du train, complémentaire (7 juillet 2026).** La zone compte deux gares (McMasterville et Mont-Saint-Hilaire, ligne Mont-Saint-Hilaire), soit des points d'accès complémentaires au même titre que les arrêts d'autobus, mais bien moins nombreux. Elles servent surtout d'ancrages ponctuels pour les sites candidats, alors que les arrêts d'autobus (plus denses) constituent la principale couche d'accès. Les lignes de train ne sont conservées que comme contexte cartographique et corridor indicatif.
 
 ## Difficultés rencontrées
-- **Complétude d'OpenStreetMap.** La qualité des données en milieu périurbain (Beloeil et Mont-Saint-Hilaire) peut varier, pour le réseau comme pour les services. Un croisement avec Données Québec et les inventaires municipaux est planifié pour combler les manques.
-- **Franchissabilité des ponts dans OSM.** La franchissabilité piétonne des ponts sur le Richelieu doit être validée à partir de ce qu'OSM fournit réellement (présence ou non des trottoirs sur les ponts). État : à vérifier. Piste : un module dédié (`bridges.py`) contrôle la présence d'un chemin piéton continu d'une rive à l'autre, croisé au besoin avec l'imagerie et les inventaires municipaux.
+- **Complétude d'OpenStreetMap.** La qualité des données en milieu périurbain (Beloeil et Mont-Saint-Hilaire) peut varier, pour le réseau comme pour les services. Aucune couche équivalente de Données Québec ou de la MRC n'est diffusée pour permettre un croisement systématique. La vérification s'appuiera donc sur l'imagerie aérienne (orthophotos) et une inspection manuelle ciblée, et les manques résiduels seront documentés comme une limite du projet.
+- **Franchissabilité des ponts dans OSM.** La franchissabilité piétonne des ponts sur le Richelieu doit être validée à partir de ce qu'OSM fournit réellement (présence ou non des trottoirs sur les ponts). État : à vérifier. Piste : un module dédié (`bridges.py`) contrôle la présence d'un chemin piéton continu d'une rive à l'autre, croisé au besoin avec l'imagerie aérienne (orthophotos).
 - **Données du transport à la demande indisponibles.** Les emplacements des arrêts du service exo à la demande ne sont pas diffusés publiquement. État : contourné. Piste : se limiter au réseau fixe (arrêts du GTFS et gares de train).
 - **Hétérogénéité des systèmes de coordonnées.** Les sources arrivent dans des CRS différents (OSM et exo en EPSG:4326, aires de diffusion en EPSG:3347, limites municipales en EPSG:4269, utilisation du sol en EPSG:32188). État : maîtrisé. Piste : une fonction de reprojection unique vers EPSG:2950, couverte par un test unitaire, appliquée à toutes les couches avant analyse pour éviter les jointures spatiales silencieusement fausses.
-- **Effet de bordure spatiale.** Découper l'analyse strictement aux frontières municipales aurait ignoré des commerces limitrophes essentiels ; la zone tampon règle ce problème, tout en mesurant la demande uniquement dans Beloeil et Mont-Saint-Hilaire.
+- **Effet de bordure spatiale.** Découper l'analyse strictement aux frontières municipales aurait ignoré des commerces limitrophes essentiels, la zone tampon règle ce problème, tout en mesurant la demande uniquement dans Beloeil et Mont-Saint-Hilaire.
 - **Agrégation des données de recensement.** La demande est diffusée par aire de diffusion, pas par adresse, alors que le calcul d'accessibilité se fait entre points précis (résidences et services), ce qui introduit une perte de précision à garder en tête.
-- **Choix du facteur de vulnérabilité.** Le facteur est limité aux données disponibles. Un seul critère est retenu (65 ans et plus) par souci de simplicité, alors que plusieurs pourraient être combinés et pondérés. Des dimensions d'offre et de demande plus fines sont aussi ignorées par manque de données.
+- **Choix du facteur de vulnérabilité.** Le facteur est limité aux données disponibles. Un seul critère est retenu (65 ans et plus) par souci de simplicité, alors que plusieurs pourraient être combinés et pondérés. 
+- **Modélisation simplifiée de l'offre et de la demande.** La demande compte les personnes sans nuance d'intensité du besoin, et l'offre traite chaque service comme équivalent, sans tenir compte de sa taille ni de sa capacité. Ces raffinements sont écartés par manque de données.
