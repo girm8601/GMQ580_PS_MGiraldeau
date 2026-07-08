@@ -1,4 +1,4 @@
-name: gmq580
+name: gmq580_ps_mg
 channels:
   - conda-forge
 dependencies:
@@ -9,6 +9,8 @@ dependencies:
   - pandas
   - shapely
   - pyproj
+  - rtree
+  - mapclassify
   - folium
   - matplotlib
   - spopt

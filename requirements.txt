@@ -4,6 +4,8 @@ geopandas
 pandas
 shapely
 pyproj
+rtree
+mapclassify
 spopt
 folium
 matplotlib
