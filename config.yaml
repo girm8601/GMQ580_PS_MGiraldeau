@@ -1,0 +1,94 @@
+# Configuration centrale du projet.
+# Tous les parametres sont ici : aucun chemin, CRS, seuil ou nom de champ code en dur ailleurs.
+# Charge par config_loader.py.
+
+# --- Systemes de coordonnees ---
+crs_cible: "EPSG:2950"              # NAD83(CSRS) / MTM zone 8 : CRS commun a toutes les couches
+crs_sources:                        # CRS d'origine de chaque source (reference et audit)
+  osm: "EPSG:4326"
+  aires_diffusion: "EPSG:3347"
+  limites_municipales: "EPSG:4269"
+  utilisation_sol: "EPSG:32188"
+  transport_exo: "EPSG:4326"
+
+# --- Zone d'etude ---
+zone_etude:
+  municipalites_demande:                 # ou la demande est reellement mesuree
+    - "Beloeil"
+    - "Mont-Saint-Hilaire"
+  municipalites_tampon:                  # zone tampon : reseau, services et transport seulement
+    - "McMasterville"
+    - "Otterburn Park"
+  champ_nom_municipalite: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
+
+# --- Marche a pied ---
+# Deux mesures complementaires (voir README) :
+#  - couverture : un lieu est couvert si un service est atteint a pied sous le seuil
+#  - cote par type de service : paliers de distance repris de GMQ210
+seuils_couverture_m: [400, 800]     # bassins pietons usuels (~5 et ~10 min), adaptes aux aines
+seuils_cote_m:                      # repris de GMQ210 : [distance max en m, cote]
+  - [1000, 4]                       # moins de 1 km : cote 4
+  - [2000, 3]                       # 1 a 2 km : cote 3
+  - [3000, 2]                       # 2 a 3 km : cote 2
+  - [999999, 1]                     # plus de 3 km : cote 1
+
+# --- Acces au transport collectif (reseau fixe) ---
+transport:
+  distance_max_arret_m: 500         # un arret compte comme accessible s'il est a <= 500 m a pied
+  route_types_fixes: [3]            # GTFS : 3 = autobus (reseau fixe)
+  route_types_exclus: [1501]        # GTFS : 1501 = sur reservation (a la demande, exclu)
+  champ_lat: "stop_lat"
+  champ_lon: "stop_lon"
+  gares_pertinentes: ["Gare McMasterville", "Gare Mont-Saint-Hilaire"]  # points d'acces (ligne Mont-Saint-Hilaire)
+  ligne_train_contexte: "Ligne Mont-Saint-Hilaire"                      # gardee pour la carte et comme corridor indicatif, pas comme point d'acces
+
+# --- Demande et vulnerabilite ---
+vulnerabilite:
+  critere: "65 ans et plus"
+  caracteristique_id: 24            # ID_CARACTERISTIQUE du 65 ans et plus (compte)
+  population_totale_id: 1           # ID_CARACTERISTIQUE de la population totale 2021
+  colonne_valeur: "C1_CHIFFRE_TOTAL"
+  champ_jointure_ad: "IDUGD"        # cle limites <-> profil (aussi ADIDU disponible)
+
+# --- Services essentiels (etiquettes OSM) ---
+services_essentiels:
+  epicerie:
+    shop: ["supermarket", "grocery", "convenience", "greengrocer"]
+  pharmacie:
+    amenity: ["pharmacy"]
+  sante:
+    amenity: ["clinic", "doctors", "hospital"]
+  banque:
+    amenity: ["bank"]
+  poste:
+    amenity: ["post_office"]
+  ecole:
+    amenity: ["school"]
+  bibliotheque:
+    amenity: ["library"]
+  communautaire:
+    amenity: ["social_facility", "community_centre"]
+
+# --- Utilisation du sol (filtrage des sites candidats) ---
+utilisation_sol:
+  champ_code: "UTIL_SOL"
+  # Codes CMM exclus (non batissables ou inadaptes a un service de proximite) :
+  #   400 industrie, 600 parc/espace vert, 700/710/720/725/750/760 utilite publique et infrastructure,
+  #   800 agricole, 1000 hydrographie, 1100 golf.
+  # Conserves comme candidats : 100-114 residentiel, 200 commerciale, 300 bureau,
+  #   510/520 institutionnel, 900 terrain vacant (souvent le meilleur candidat).
+  codes_exclus: [400, 600, 700, 710, 720, 725, 750, 760, 800, 1000, 1100]
+
+# --- Optimisation (spopt, couverture maximale) ---
+optimisation:
+  n_services_min: 1
+  n_services_max: 5
+
+# --- Chemins ---
+chemins:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  outputs_maps: "outputs/maps"
+  outputs_figures: "outputs/figures"
+  outputs_tables: "outputs/tables"
+  audit_report: "outputs/tables/audit_report.csv"
