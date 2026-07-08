@@ -1,11 +1,8 @@
-# tests/test_io.py
-# Exemple de test unitaire, a adapter au nom reel de la fonction de reprojection.
 # Objectif : verifier qu'un GeoDataFrame en EPSG:4326 est bien ramene a EPSG:2950.
 
 import geopandas as gpd
 from shapely.geometry import Point
 
-# Adapter l'import au nom reel de la fonction dans src/io.py
 from src.io import reproject
 
 
