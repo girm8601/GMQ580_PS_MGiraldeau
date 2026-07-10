@@ -22,6 +22,11 @@ jobs:
       - name: Installer les dependances
         run: pip install -r requirements.txt
 
+      - name: Verifier la qualite du code (ruff)
+        run: |
+          pip install ruff
+          ruff check src/ tests/ config_loader.py
+
       - name: Lancer les tests avec couverture
         run: pytest tests/ --cov=src --cov-report=term-missing --cov-report=xml -v
 
