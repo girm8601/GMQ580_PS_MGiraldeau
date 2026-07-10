@@ -1,0 +1,149 @@
+"""Regles d'audit des donnees, le garde-fou du pipeline.
+
+Chaque couche est verifiee avant tout traitement. Si une regle echoue, le
+pipeline s'arrete avec une erreur claire plutot que de produire un resultat
+spatialement faux. Chaque verification est journalisee puis ecrite dans un
+rapport CSV, ce qui permet de retracer ce que la donnee a subi.
+"""
+
+from __future__ import annotations
+
+import os
+
+import pandas as pd
+
+
+class AuditError(Exception):
+    """Erreur levee quand au moins une couche ne respecte pas une regle d'audit."""
+
+
+def check_crs(gdf, expected_crs):
+    """Verifie que le CRS declare de la couche correspond au CRS attendu."""
+    if gdf.crs is None:
+        return False, "aucun CRS declare"
+    declared = gdf.crs.to_string()
+    if declared != expected_crs:
+        return False, f"CRS declare {declared} au lieu de {expected_crs}"
+    return True, f"CRS conforme ({expected_crs})"
+
+
+def check_not_empty(gdf):
+    """Verifie que la couche contient au moins une entite."""
+    count = len(gdf)
+    return count > 0, f"{count} entite(s)"
+
+
+def check_valid_geometries(gdf):
+    """Verifie que toutes les geometries non vides sont valides."""
+    present = gdf.geometry.notna() & ~gdf.geometry.is_empty
+    invalid_count = int((~gdf.geometry[present].is_valid).sum())
+    return invalid_count == 0, f"{invalid_count} geometrie(s) invalide(s)"
+
+
+def check_empty_geometries(gdf):
+    """Verifie qu'aucune geometrie n'est vide ou absente."""
+    empty_count = int((gdf.geometry.isna() | gdf.geometry.is_empty).sum())
+    return empty_count == 0, f"{empty_count} geometrie(s) vide(s)"
+
+
+def check_duplicates(gdf):
+    """Verifie qu'aucune entite n'est dupliquee sur l'ensemble de ses colonnes."""
+    duplicate_count = int(gdf.duplicated().sum())
+    return duplicate_count == 0, f"{duplicate_count} doublon(s)"
+
+
+def check_required_fields(gdf, required_fields):
+    """Verifie que tous les champs necessaires a l'analyse sont presents."""
+    missing = [field for field in required_fields if field not in gdf.columns]
+    if missing:
+        return False, "champs manquants " + ", ".join(missing)
+    return True, "champs requis presents"
+
+
+def check_zone_overlap(gdf, zone_gdf):
+    """Verifie que la couche recouvre bien la zone d'etude."""
+    zone_union = zone_gdf.union_all()
+    overlap_count = int(gdf.intersects(zone_union).sum())
+    return overlap_count > 0, f"{overlap_count} entite(s) dans la zone d'etude"
+
+
+def fix_invalid_geometries(gdf, layer_name, logger):
+    """Corrige les geometries invalides avec buffer(0) et journalise la correction."""
+    present = gdf.geometry.notna() & ~gdf.geometry.is_empty
+    invalid_mask = present & ~gdf.geometry.is_valid
+    fixed_count = int(invalid_mask.sum())
+    if fixed_count > 0:
+        gdf = gdf.copy()
+        gdf.loc[invalid_mask, "geometry"] = gdf.loc[invalid_mask, "geometry"].buffer(0)
+        logger.warning(
+            "%s, correction buffer(0) appliquee a %d geometrie(s) invalide(s)",
+            layer_name,
+            fixed_count,
+        )
+    return gdf, fixed_count
+
+
+def audit_layer(gdf, layer_name, expected_crs, required_fields=None, zone=None):
+    """Applique toutes les regles d'audit a une couche et retourne les resultats."""
+    rows = []
+
+    def add(rule_name, passed, detail):
+        rows.append(
+            {
+                "couche": layer_name,
+                "regle": rule_name,
+                "statut": "ok" if passed else "echec",
+                "detail": detail,
+            }
+        )
+
+    add("crs_attendu", *check_crs(gdf, expected_crs))
+    add("couche_non_vide", *check_not_empty(gdf))
+    add("geometries_valides", *check_valid_geometries(gdf))
+    add("geometries_non_vides", *check_empty_geometries(gdf))
+    add("absence_de_doublons", *check_duplicates(gdf))
+    if required_fields:
+        add("champs_requis", *check_required_fields(gdf, required_fields))
+    if zone is not None:
+        add("couverture_zone", *check_zone_overlap(gdf, zone))
+    return rows
+
+
+def run_audit(entries, report_path, logger):
+    """Audite toutes les couches, ecrit le rapport CSV et bloque en cas d'echec.
+
+    Chaque entree est un dictionnaire avec les cles gdf, nom, crs et, au besoin,
+    champs_requis et zone. Le rapport complet est toujours ecrit, meme en cas
+    d'echec, pour que le probleme soit facile a retracer.
+    """
+    all_rows = []
+    for entry in entries:
+        all_rows.extend(
+            audit_layer(
+                entry["gdf"],
+                entry["nom"],
+                entry["crs"],
+                required_fields=entry.get("champs_requis"),
+                zone=entry.get("zone"),
+            )
+        )
+    report = pd.DataFrame(all_rows)
+
+    folder = os.path.dirname(report_path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    report.to_csv(report_path, index=False, encoding="utf-8")
+
+    for row in all_rows:
+        if row["statut"] == "echec":
+            logger.error("Audit %s, %s, %s", row["couche"], row["regle"], row["detail"])
+        else:
+            logger.info("Audit %s, %s, %s", row["couche"], row["regle"], row["detail"])
+
+    failure_count = int((report["statut"] == "echec").sum())
+    if failure_count > 0:
+        raise AuditError(
+            f"{failure_count} regle(s) d'audit en echec, voir le rapport {report_path}"
+        )
+    logger.info("Audit reussi, rapport ecrit dans %s", report_path)
+    return report
