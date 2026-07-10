@@ -21,6 +21,24 @@ zone_etude:
     - "Otterburn Park"
   champ_nom_municipalite: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
 
+# --- Reseau pietonnier (OSMnx) ---
+reseau_pieton:
+  network_type: "walk"              # rues, trottoirs et sentiers marchables (comme GMQ210)
+
+# --- Batiments residentiels (etiquettes OSM) ---
+batiments_residentiels:
+  champ: "building"
+  # Valeurs retenues comme residentielles : liste de GMQ210 completee des
+  # valeurs usuelles en banlieue quebecoise (house, bungalow, duplex).
+  # La valeur generique "yes" est ambigue : elle ne compte comme residentielle
+  # que si le batiment tombe dans un polygone d'usage residentiel de la CMM
+  # (codes 100 a 114). Les types ecartes seront journalises par l'audit.
+  types_retenus: ["house", "detached", "apartments", "residential", "yes",
+                  "static_caravan", "semidetached_house", "terrace", "farm",
+                  "bungalow", "duplex"]
+  codes_sol_residentiels: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114]
+  tag_adresses: "addr:housenumber"  # noeuds d'adresse isoles, complement des batiments (comme GMQ210)
+
 # --- Marche a pied ---
 # Deux mesures complementaires (voir README) :
 #  - couverture : un lieu est couvert si un service est atteint a pied sous le seuil
@@ -49,6 +67,7 @@ vulnerabilite:
   population_totale_id: 1           # ID_CARACTERISTIQUE de la population totale 2021
   colonne_valeur: "C1_CHIFFRE_TOTAL"
   champ_jointure_ad: "IDUGD"        # cle limites <-> profil (aussi ADIDU disponible)
+  encodage_csv: "latin-1"           # encodage du profil StatCan (colonnes accentuees)
 
 # --- Services essentiels (etiquettes OSM) ---
 services_essentiels:
@@ -92,3 +111,4 @@ chemins:
   outputs_figures: "outputs/figures"
   outputs_tables: "outputs/tables"
   audit_report: "outputs/tables/audit_report.csv"
+  log_file: "logs/pipeline.log"     # journal du pipeline (ignore par Git)
