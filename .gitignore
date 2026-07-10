@@ -32,3 +32,9 @@ coverage.xml
 .DS_Store
 .ipynb_checkpoints/
 .vscode/
+
+# Cartes interactives volumineuses (regenerees par main.py)
+outputs/maps/*.html
+
+# Cache des requetes OSMnx vers l'API Overpass (regenerable)
+cache/
