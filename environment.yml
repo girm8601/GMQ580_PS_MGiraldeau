@@ -17,4 +17,7 @@ dependencies:
   - pyyaml
   - pytest
   - pytest-cov
+  - black
+  - ruff
+  - pre-commit
   - pip

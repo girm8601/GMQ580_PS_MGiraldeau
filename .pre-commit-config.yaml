@@ -1,0 +1,21 @@
+# Hooks executes automatiquement avant chaque commit (pre-commit install).
+# La qualite du code ne se revise pas a la fin : black et ruff tournent des le debut.
+
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace   # supprimer les espaces en fin de ligne
+      - id: end-of-file-fixer     # fichier termine par une ligne vide
+      - id: check-yaml            # verifier la syntaxe des .yml
