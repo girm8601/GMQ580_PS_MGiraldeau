@@ -10,7 +10,7 @@ def test_reprojection_vers_2950():
     """Toute couche doit etre ramenee au CRS cible EPSG:2950 avant analyse."""
     gdf = gpd.GeoDataFrame(
         {"id": [1]},
-        geometry=[Point(-73.19, 45.57)],   # un point pres de Beloeil, en EPSG:4326
+        geometry=[Point(-73.19, 45.57)],  # un point pres de Beloeil, en EPSG:4326
         crs="EPSG:4326",
     )
     resultat = reproject(gdf, "EPSG:2950")
