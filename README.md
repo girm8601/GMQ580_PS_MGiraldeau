@@ -11,7 +11,7 @@ Le projet porte sur Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), sépa
 
 L'accès aux services ne se limite toutefois pas à la marche, le réseau de transport collectif élargit la portée réelle des résidents vers les services situés au-delà d'une distance marchable. Le projet intègre donc le réseau fixe d'exo (emplacements des arrêts d'autobus et des gares de train) comme dimension complémentaire d'accès, sans tenir compte des horaires ni du temps réel.
 
-Le projet évalue si les résidents les plus dépendants de la marche disposent d'un accès équitable aux services essentiels, afin de déterminer la nature et la localisation des nouveaux services à implanter pour maximiser la couverture. Il reprend et étend, avec l'accord de l'enseignant, le projet de session du cours GMQ210. 
+Le projet évalue si les résidents les plus dépendants de la marche disposent d'un accès équitable aux services essentiels, afin de déterminer la nature et la localisation des nouveaux services à implanter pour maximiser la couverture. Il reprend et étend, avec l'accord de l'enseignant, le projet de session du cours GMQ210.
 
 Les résultats concernent les villes visées et les décideurs publics, communautaires et privés. Le projet se limite à un diagnostic prospectif (l'implantation réelle revient aux décideurs) et n'aborde ni les horaires d'ouverture ni un indice de vulnérabilité multicritère.
 
@@ -65,12 +65,12 @@ flowchart TD
         F["Réseau piétonnier, distances de marche<br/>(Dijkstra)"]
         G["Cote d'accessibilité<br/>par type de service"]
         TA["Accès complémentaire par le réseau fixe<br/>arrêts et gares comme points d'accès"]
-        H["Indicateur de couverture<br/>des résidents vulnérables"]
         I["Demande pondérée par la vulnérabilité<br/>(aînés par aire de diffusion)"]
+        H["Indicateur de couverture<br/>des résidents vulnérables"]
     end
 
     subgraph P3["3. Optimisation (scénario S1)"]
-        J["Définition et filtrage des sites candidats<br/>y compris à proximité des gares et lignes de train"]
+        J["Définition et filtrage des sites candidats<br/>y compris à proximité des arrêts fixes et des gares"]
         K["Optimisation par couverture maximale<br/>où et quel type, n de 1 à 5"]
         L["Analyse de sensibilité d'équité<br/>pondération vulnérable ou totale"]
     end
@@ -88,14 +88,14 @@ flowchart TD
     C -->|"networkx"| D
     D -->|"geopandas"| E
     E -->|"networkx, Dijkstra"| F
+    E -->|"pandas, geopandas"| I
     F --> G
-    F --> H
     T --> TA
     F --> TA
-    TA --> I
-    G -->|"pandas, geopandas"| I
-    H --> I
-    I -->|"geopandas"| J
+    G --> H
+    TA --> H
+    I --> H
+    H -->|"geopandas"| J
     T --> J
     J -->|"spopt, PySAL"| K
     K --> L
@@ -133,7 +133,7 @@ flowchart TD
 - **pytest / pytest-cov** : tests unitaires des fonctions critiques (reprojection, géométries, calculs d'accessibilité) et mesure de couverture, exécutés en intégration continue (GitHub Actions).
 
 ## Installation et environnement
-Les paramètres (CRS cible EPSG:2950, zone d'étude, seuils de marche, types de services, chemins) sont centralisés dans `config.yaml` et chargés par `config_loader.py` ; aucun paramètre n'est codé en dur dans les scripts.
+Les paramètres (CRS cible EPSG:2950, zone d'étude, seuils de marche, types de services, chemins) sont centralisés dans `config.yaml` et chargés par `config_loader.py`, qui valide la configuration avant tout accès aux données. Aucun paramètre n'est codé en dur dans les scripts.
 
 **Avec conda (recommandé)**
 ```bash
@@ -155,7 +155,7 @@ python main.py                # exécute le pipeline complet
 ```
 
 ## Tests et intégration continue
-Les tests couvrent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial (reprojection vers EPSG:2950, validité des géométries, cote d'accessibilité, pondération de la demande). Les données de test sont de petits objets synthétiques (`tests/fixtures/`), jamais les données réelles du projet.
+Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial (reprojection vers EPSG:2950, validité des géométries, cote d'accessibilité, pondération de la demande). Les données de test sont de petits objets synthétiques (`tests/fixtures/`), jamais les données réelles du projet. Les tests de la reprojection et du chargeur de configuration sont implantés, les autres fichiers seront remplis au fur et à mesure que les modules correspondants seront écrits.
 
 **Lancer les tests localement**
 ```bash
@@ -167,15 +167,16 @@ pytest tests/ -v
 pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-Le workflow GitHub Actions (`.github/workflows/ci.yml`) rejoue automatiquement `pytest` à chaque `push` et `pull request` sur `main` ; le badge en haut de ce README reflète l'état du dernier passage (vert = tests réussis).
+Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du code avec `ruff` puis rejoue `pytest` à chaque `push` et `pull request` sur `main`. Le badge en haut de ce README reflète l'état du dernier passage (vert = tests réussis). Les hooks `pre-commit` (`black`, `ruff`) appliquent les mêmes règles localement avant chaque commit.
 
-| Test | Vérifie |
-|------|---------|
-| `test_io.py` | Reprojection correcte vers EPSG:2950. Lecture/écriture GeoPackage sans perte de CRS |
-| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu |
-| `test_accessibility.py` | Cote d'accessibilité par type de service sur données synthétiques |
-| `test_demand.py` | Pondération de la demande par la vulnérabilité (aînés par AD) |
-| `test_validation.py` | Règles d'audit : CRS attendu, géométries valides et non vides, absence de doublons |
+| Test | Vérifie | Statut |
+|------|---------|--------|
+| `test_io.py` | Reprojection correcte vers EPSG:2950. Lecture/écriture GeoPackage sans perte de CRS | ✅ Implanté (reprojection) |
+| `test_config_loader.py` | Chargement et validation de `config.yaml` (sections obligatoires, CRS cible) | ✅ Implanté |
+| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu | ⏳ À écrire |
+| `test_accessibility.py` | Cote d'accessibilité par type de service sur données synthétiques | ⏳ À écrire |
+| `test_demand.py` | Pondération de la demande par la vulnérabilité (aînés par AD) | ⏳ À écrire |
+| `test_validation.py` | Règles d'audit : CRS attendu, géométries valides et non vides, absence de doublons | ⏳ À écrire |
 
 ## Livrables attendus
 - Un dépôt GitHub reproductible contenant l'ensemble du pipeline, avec tests unitaires et intégration continue.
@@ -194,8 +195,8 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) rejoue automatiquement `
 | Structuration du dépôt GitHub (arborescence du projet, `.gitignore`, branches) | 🔄 En cours |
 | Acquisition des données (OSM, recensement, Données Québec, exo, CMM) | 🔄 En cours |
 | Intégration du réseau de transport collectif (arrêts d'autobus, gares et lignes de train) | 🔄 En cours |
-| Environnement conda (`environment.yml`) et dépendances (`requirements.txt`) | 🔄 En cours |
-| Tests unitaires (`pytest`) et intégration continue (GitHub Actions) | ⏳ À faire |
+| Environnement conda (`environment.yml`) et dépendances (`requirements.txt`) | ✅ Complété |
+| Tests unitaires (`pytest`) et intégration continue (GitHub Actions) | 🔄 En cours |
 | Vérification et contrôle qualité des données | ⏳ À faire |
 | Validation de la franchissabilité des ponts dans le graphe | ⏳ À faire |
 | Délimitation de la zone d'étude et de la zone tampon | ⏳ À faire |
@@ -218,6 +219,7 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) rejoue automatiquement `
 - **Intégration du réseau de transport collectif (7 juillet 2026).** L'accès aux services ne se mesure pas uniquement par la marche réelle, les villes à l'étude sont desservies par le réseau d'exo. Le réseau fixe (arrêts d'autobus du GTFS de la CITVR, gares de train) est donc intégré comme dimension complémentaire d'accès, les arrêts et gares agissant comme points d'accès vers les services situés au-delà d'une distance marchable.
 - **Réseau fixe seulement, sans horaires ni temps réel (7 juillet 2026).** Seuls les emplacements des arrêts et des gares sont considérés, sans horaires, fréquences ni temps réel. Les villes sont aussi couvertes par un service de transport à la demande, mais les emplacements des arrêts de ce service ne sont pas diffusés ([exo à la demande](https://exoalademande.exo.quebec/search)). À défaut de cette source, l'analyse se limite au réseau fixe, ce qui garde le traitement reproductible et vérifiable.
 - **Rôle du train, complémentaire (7 juillet 2026).** La zone compte deux gares (McMasterville et Mont-Saint-Hilaire, ligne Mont-Saint-Hilaire), soit des points d'accès complémentaires au même titre que les arrêts d'autobus, mais bien moins nombreux. Elles servent surtout d'ancrages ponctuels pour les sites candidats, alors que les arrêts d'autobus (plus denses) constituent la principale couche d'accès. Les lignes de train ne sont conservées que comme contexte cartographique et corridor indicatif.
+- **Étiquettes OSM des bâtiments résidentiels (9 juillet 2026).** L'expérience de GMQ210 a montré qu'une seule étiquette ne suffit pas à capter toutes les résidences. La liste des valeurs `building` retenues est donc centralisée dans `config.yaml` (dont `house`, absente de la liste GMQ210, et les valeurs usuelles en banlieue québécoise), complétée par les nœuds d'adresse isolés (`addr:housenumber`) et par le réseau piétonnier extrait avec `network_type` défini en configuration. La valeur générique `yes`, ambiguë, ne compte comme résidentielle que si le bâtiment tombe dans un polygone d'usage résidentiel de la CMM (codes 100 à 114). Les types écartés seront journalisés par l'audit afin de vérifier qu'aucun type pertinent ne manque dans la zone.
 
 ## Difficultés rencontrées
 - **Complétude d'OpenStreetMap.** La qualité des données en milieu périurbain (Beloeil et Mont-Saint-Hilaire) peut varier, pour le réseau comme pour les services. Aucune couche équivalente de Données Québec ou de la MRC n'est diffusée pour permettre un croisement systématique. La vérification s'appuiera donc sur l'imagerie aérienne (orthophotos) et une inspection manuelle ciblée, et les manques résiduels seront documentés comme une limite du projet.
