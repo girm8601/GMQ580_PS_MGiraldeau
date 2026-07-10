@@ -10,7 +10,7 @@ def test_chargement_config_complete():
     """config.yaml doit se charger et definir le CRS cible EPSG:2950."""
     config = load_config("config.yaml")
     assert config["crs_cible"] == "EPSG:2950"
-    assert "Beloeil" in config["zone_etude"]["municipalites_demande"]
+    assert "Beloeil" in config["zone_etude"]["municipalites"]
 
 
 def test_fichier_introuvable():

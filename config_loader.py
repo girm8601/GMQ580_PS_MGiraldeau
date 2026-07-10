@@ -84,10 +84,10 @@ def _check_crs(config: dict) -> None:
 
 
 def _check_study_area(config: dict) -> None:
-    """Verifie que la zone d'etude contient au moins une municipalite de demande."""
+    """Verifie que la zone d'etude contient au moins une municipalite."""
     study_area = config["zone_etude"]
-    municipalities = study_area.get("municipalites_demande")
+    municipalities = study_area.get("municipalites")
     if not isinstance(municipalities, list) or not municipalities:
         raise ConfigError(
-            "zone_etude.municipalites_demande doit contenir au moins une municipalite."
+            "zone_etude.municipalites doit contenir au moins une municipalite."
         )

@@ -12,14 +12,22 @@ crs_sources:                        # CRS d'origine de chaque source (reference 
   transport_exo: "EPSG:4326"
 
 # --- Zone d'etude ---
+# Les quatre municipalites riveraines contigues forment la zone d'etude au
+# complet. La demande, les services, le reseau et le transport y sont tous
+# mesures, sans zone tampon, les services se concentrent au coeur des villes.
 zone_etude:
-  municipalites_demande:                 # ou la demande est reellement mesuree
+  municipalites:
     - "Beloeil"
     - "Mont-Saint-Hilaire"
-  municipalites_tampon:                  # zone tampon : reseau, services et transport seulement
     - "McMasterville"
     - "Otterburn Park"
   champ_nom_municipalite: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
+  rive_ouest:                            # municipalites a l'ouest du Richelieu (pour l'effet de barriere)
+    - "Beloeil"
+    - "McMasterville"
+  rive_est:                              # municipalites a l'est du Richelieu
+    - "Mont-Saint-Hilaire"
+    - "Otterburn Park"
 
 # --- Reseau pietonnier (OSMnx) ---
 reseau_pieton:
@@ -68,6 +76,7 @@ vulnerabilite:
   colonne_valeur: "C1_CHIFFRE_TOTAL"
   champ_jointure_ad: "IDUGD"        # cle limites <-> profil (aussi ADIDU disponible)
   encodage_csv: "latin-1"           # encodage du profil StatCan (colonnes accentuees)
+  colonne_caracteristique: "ID_CARACTÉRISTIQUE"   # nom exact de la colonne dans le CSV
 
 # --- Services essentiels (etiquettes OSM) ---
 services_essentiels:
@@ -91,17 +100,61 @@ services_essentiels:
 # --- Utilisation du sol (filtrage des sites candidats) ---
 utilisation_sol:
   champ_code: "UTIL_SOL"
-  # Codes CMM exclus (non batissables ou inadaptes a un service de proximite) :
+  # Codes CMM exclus comme sites candidats :
+  #   100-114 residentiel (on n'implante pas un service dans une cour),
   #   400 industrie, 600 parc/espace vert, 700/710/720/725/750/760 utilite publique et infrastructure,
   #   800 agricole, 1000 hydrographie, 1100 golf.
-  # Conserves comme candidats : 100-114 residentiel, 200 commerciale, 300 bureau,
+  # Conserves comme candidats : 200 commerciale, 300 bureau,
   #   510/520 institutionnel, 900 terrain vacant (souvent le meilleur candidat).
-  codes_exclus: [400, 600, 700, 710, 720, 725, 750, 760, 800, 1000, 1100]
+  codes_exclus: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+                 400, 600, 700, 710, 720, 725, 750, 760, 800, 1000, 1100]
 
 # --- Optimisation (spopt, couverture maximale) ---
 optimisation:
   n_services_min: 1
-  n_services_max: 5
+  n_services_max: 8
+  seuil_couverture_m: 800                        # un lieu est couvert si le service est a moins de 800 m de marche
+  espacement_sites_m: 500                        # distance minimale entre deux sites ajoutes (zones distinctes)
+  cartes_aux_etapes: [2, 4, 6, 8]                # etapes du panier qui produisent une carte
+  ponderations: ["aines", "population_totale"]   # analyse de sensibilite d'equite
+
+# --- Importance des services pour les aines ---
+# Ponderation utilisee pour choisir le panier de services a ajouter (S1) et
+# pour la couverture moyenne affichee sur les cartes. Les services du
+# quotidien essentiels a l'autonomie pesent plus lourd que les services
+# occasionnels. L'ecole pese peu, elle sert surtout aux deplacements
+# intergenerationnels.
+importance_services:
+  epicerie: 1.0
+  pharmacie: 1.0
+  sante: 0.9
+  communautaire: 0.8
+  banque: 0.7
+  poste: 0.5
+  bibliotheque: 0.5
+  ecole: 0.3
+
+# --- Visualisation (cartes interactives) ---
+visualisation:
+  couleur_arrets: "#5a5a5a"         # gris, arrets d'autobus
+  couleur_gares: "#000000"          # noir, gares et lignes de train
+  couleur_services: "#7a4a20"       # brun, services essentiels existants
+  couleur_sites: "#7a4a20"          # brun, sites recommandes par l'optimisation
+  couleur_riviere: "#9ecae1"        # bleu pale, riviere Richelieu
+  couleur_reseau_contour: "#8c8c8c" # contour gris du reseau pietonnier
+  couleur_reseau: "#ffffff"         # remplissage blanc du reseau pietonnier
+  couleur_zone: "#000000"           # trait noir de la zone tampon
+  icone_arret: "fa-bus"
+  icone_gare: "fa-train"
+  icones_services:                  # pictogrammes FontAwesome par type de service
+    epicerie: "fa-cart-shopping"
+    pharmacie: "fa-pills"
+    sante: "fa-suitcase-medical"
+    banque: "fa-building-columns"
+    poste: "fa-envelope"
+    ecole: "fa-graduation-cap"
+    bibliotheque: "fa-book"
+    communautaire: "fa-users"
 
 # --- Chemins ---
 chemins:
@@ -112,3 +165,32 @@ chemins:
   outputs_tables: "outputs/tables"
   audit_report: "outputs/tables/audit_report.csv"
   log_file: "logs/pipeline.log"     # journal du pipeline (ignore par Git)
+  # Fichiers sources dans data_raw, telecharges manuellement (voir download_data.py)
+  fichiers:
+    limites_municipales: "decoupages_administratifs_QC/munic_s.shp"
+    aires_diffusion: "AD_recensement_2021_CAN/AD_2021.shp"
+    utilisation_sol:
+      - "CMM_utilisation_sol_2022_VR/Beloeil_sol.shp"
+      - "CMM_utilisation_sol_2022_VR/MSH_sol.shp"
+      - "CMM_utilisation_sol_2022_VR/McMasterville_sol.shp"
+      - "CMM_utilisation_sol_2022_VR/Otterburn_Park_sol.shp"
+    profil_recensement: "donnees_recensement_2021_QC/Francais_CSV_data_Quebec.csv"
+    gtfs: "google_transit_VR"
+    gares_train: "train_gares_exo.geojson"
+    lignes_train: "train_lignes_exo.geojson"
+  # Fichiers OSM dans data_raw, regeneres par download_data.py
+  fichiers_osm:
+    graphe_pieton: "osm/network_walk.graphml"
+    services: "osm/services.gpkg"
+    batiments: "osm/buildings.gpkg"
+    adresses: "osm/addresses.gpkg"
+    hydrographie: "osm/water.gpkg"
+  # Couches intermediaires ecrites dans data_processed (verifiables dans QGIS)
+  fichiers_processed:
+    residences: "residences.gpkg"
+    services: "services.gpkg"
+    arrets_bus: "arrets_bus.gpkg"
+    gares: "gares.gpkg"
+    aires_diffusion: "aires_diffusion.gpkg"
+    sites_candidats: "sites_candidats.gpkg"
+    profil_recensement: "profil_recensement_filtre.csv"
