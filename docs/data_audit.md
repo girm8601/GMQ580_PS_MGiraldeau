@@ -36,7 +36,7 @@ CRS cible commun du projet : **EPSG:2950 (NAD83(CSRS) / MTM zone 8)**.
 | Arrêts d'autobus - exo, GTFS (agence CITVR = exo-Vallée du Richelieu) | Feed valide 2026-04-21 → 2026-08-23 | GTFS (`stops.txt`, etc.), coordonnées EPSG:4326 | 434 arrêts (204 dans la zone) ; 10 lignes fixes (`route_type` 3) et 4 lignes à la demande (T23, T24, T26, T30 ; `route_type` 1501) ; espaces de tête dans `stop_lat`/`stop_lon` | Parsing erroné si espaces non retirés ; confusion réseau fixe / à la demande | Nettoyer et convertir en points ; reprojeter EPSG:2950 ; écarter les `route_type` 1501 (à la demande) |
 | Gares de train - exo | Export 2026-04-02 | GeoJSON (points, 53 entités), EPSG:4326 | Réseau exo complet ; deux gares dans la zone, une par rive : Gare McMasterville (rive ouest) et Gare Mont-Saint-Hilaire (rive est) ; `adresse_civique` parfois nulle | Bruit hors zone si non filtré | Reprojeter EPSG:2950 ; retenir les gares de la zone (ligne Mont-Saint-Hilaire) |
 | Lignes de train - exo | Export 2026-04-02 | GeoJSON (lignes, 6 entités), EPSG:4326 | Doublon confirmé : « Ligne Vaudreuil/Hudson » présente deux fois ; géométries MultiLineString | Double comptage possible | Reprojeter EPSG:2950 ; retirer le doublon (`duplicated()`) ; conserver « Ligne Mont-Saint-Hilaire » |
-| Territoire desservi - exo | Export 2026-04-02 | GeoJSON (polygone, 1 entité), EPSG:4326 | Emprise à vérifier vs zone d'étude | Contexte de desserte mal cadré | Reprojeter EPSG:2950 ; usage indicatif (cadrage) |
+| Territoire desservi - exo | Export 2026-04-02 | GeoJSON (polygone, 1 entité), EPSG:4326 | Couche sans apport analytique pour la zone d'étude | Source superflue dans le projet | **Écartée du projet**, retirée de la configuration et du README |
 
 ## Notes
 

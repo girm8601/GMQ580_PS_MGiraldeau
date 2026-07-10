@@ -1,4 +1,4 @@
-# Équité piétonne face à la barrière fluviale : optimisation des services essentiels à Beloeil et Mont-Saint-Hilaire
+# Équité piétonne face à la barrière fluviale : optimisation des services essentiels à Beloeil - McMasterville et Mont-Saint-Hilaire - Otterburn Park
 **Équipe :** Mylène Giraldeau
 
 ![Tests](https://github.com/girm8601/GMQ580_PS_MGiraldeau/actions/workflows/ci.yml/badge.svg)
@@ -7,7 +7,7 @@
 ## Problématique
 L'accès aux services essentiels à pied est un enjeu d'autonomie et d'inclusion pour les résidents qui ne disposent pas d'un accès facile à l'automobile. Les personnes âgées (65 ans et plus) en sont le groupe vulnérable candidat principal, plusieurs cessent de conduire tout en demeurant capables de marcher sur de courtes distances.
 
-Le projet porte sur Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), séparées par la rivière Richelieu, franchissable seulement aux ponts. Cette barrière structure fortement l'accessibilité piétonne entre les deux rives, ce qui en fait un cas pertinent pour étudier l'équité d'accès.
+Le projet porte sur les quatre municipalités riveraines contiguës de la Vallée du Richelieu, Beloeil et McMasterville sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est, séparées par la rivière Richelieu, franchissable seulement aux ponts. Cette barrière structure fortement l'accessibilité piétonne entre les deux rives, ce qui en fait un cas pertinent pour étudier l'équité d'accès.
 
 L'accès aux services ne se limite toutefois pas à la marche, le réseau de transport collectif élargit la portée réelle des résidents vers les services situés au-delà d'une distance marchable. Le projet intègre donc le réseau fixe d'exo (emplacements des arrêts d'autobus et des gares de train) comme dimension complémentaire d'accès, sans tenir compte des horaires ni du temps réel.
 
@@ -18,11 +18,9 @@ Les résultats concernent les villes visées et les décideurs publics, communau
 La demande est analysée à l'échelle de l'aire de diffusion (Recensement 2021).
 
 ## Zone d'étude
-Le territoire couvre Beloeil (rive ouest) et Mont-Saint-Hilaire (rive est), séparées par la rivière Richelieu. La demande est analysée à l'échelle de l'aire de diffusion, et les distances à l'échelle du réseau piétonnier.
+Le territoire couvre les quatre municipalités riveraines contiguës, Beloeil et McMasterville (rive ouest), Mont-Saint-Hilaire et Otterburn Park (rive est), séparées par la rivière Richelieu. La demande est analysée à l'échelle de l'aire de diffusion, et les distances à l'échelle du réseau piétonnier.
 
-Une zone tampon incluant les secteurs contigus de McMasterville et d'Otterburn Park sert à extraire le réseau, les services existants et les points d'accès au transport collectif (arrêts et gares), afin d'éviter les effets de bordure.
-
-La demande n'est toutefois mesurée que dans Beloeil et Mont-Saint-Hilaire. Ce choix se justifie par la rivière, franchissable seulement aux ponts, qui contraint fortement l'accessibilité piétonne entre les deux rives.
+La demande, les services, les résidences, le réseau et le transport sont tous mesurés sur l'ensemble de la zone, sans zone tampon. Les services s'y concentrent au cœur des villes et non aux franges, l'effet de bordure résiduel aux limites est documenté comme une limite du projet.
 
 ## Données
 
@@ -38,7 +36,7 @@ La demande n'est toutefois mesurée que dans Beloeil et Mont-Saint-Hilaire. Ce c
 | Arrêts du réseau d'autobus (exo – Vallée du Richelieu) | GTFS (fichiers texte) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [exo, données ouvertes (GTFS)](https://exo.quebec/fr/a-propos/donnees-ouvertes) |
 | Gares de train (exo) | GeoJSON (points) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [Données Québec, gares de train exo](https://www.donneesquebec.ca/recherche/dataset/gares-de-train-exo/resource/8c169002-866c-40e8-babd-2be7186cb17c) |
 | Lignes de train (exo) | GeoJSON (lignes) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [Données Québec, lignes de train exo](https://www.donneesquebec.ca/recherche/dataset/lignes-de-train-exo/resource/0f7d6393-e43e-48b3-ab8c-a3d48b36cac6) |
-| Territoire desservi par exo | GeoJSON (polygone) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [Données Québec, limites du territoire exo](https://www.donneesquebec.ca/recherche/dataset/limites-du-territoire-exo) |
+| Plans d'eau, rivière Richelieu (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | Extrait via OSMnx (étiquette `natural=water`), contexte cartographique |
 
 Toutes les couches sont ramenées au CRS cible commun EPSG:2950 (NAD83(CSRS) / MTM zone 8) avant analyse. Les données brutes ne sont pas versionnées, elles sont régénérées par `download_data.py` (voir `.gitignore`).
 
@@ -58,7 +56,7 @@ flowchart TD
         T["Réseau de transport collectif exo<br/>arrêts d'autobus (GTFS), gares et lignes de train"]
         C["Vérification et contrôle qualité"]
         D["Validation de la franchissabilité<br/>des ponts dans le graphe"]
-        E["Délimitation de la zone d'étude<br/>Beloeil et Mont-Saint-Hilaire, zone tampon"]
+        E["Délimitation de la zone d'étude<br/>les quatre municipalités riveraines"]
     end
 
     subgraph P2["2. Analyse d'accessibilité (état actuel, S0)"]
@@ -70,8 +68,8 @@ flowchart TD
     end
 
     subgraph P3["3. Optimisation (scénario S1)"]
-        J["Définition et filtrage des sites candidats<br/>y compris à proximité des arrêts fixes et des gares"]
-        K["Optimisation par couverture maximale<br/>où et quel type, n de 1 à 5"]
+        J["Définition et filtrage des sites candidats<br/>terrains propices selon l'utilisation du sol"]
+        K["Optimisation par couverture maximale<br/>où et quel type, n de 1 à 8"]
         L["Analyse de sensibilité d'équité<br/>pondération vulnérable ou totale"]
     end
 
@@ -155,7 +153,7 @@ python main.py                # exécute le pipeline complet
 ```
 
 ## Tests et intégration continue
-Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial (reprojection vers EPSG:2950, validité des géométries, cote d'accessibilité, pondération de la demande). Les données de test sont de petits objets synthétiques (`tests/fixtures/`), jamais les données réelles du projet. Les tests de la reprojection et du chargeur de configuration sont implantés, les autres fichiers seront remplis au fur et à mesure que les modules correspondants seront écrits.
+Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial (reprojection vers EPSG:2950, validité des géométries, cote d'accessibilité, pondération de la demande). Les données de test sont de petits objets synthétiques (`tests/fixtures/`), jamais les données réelles du projet. Chaque module d'analyse est couvert par des tests sur données synthétiques, 37 tests s'exécutent localement et en intégration continue.
 
 **Lancer les tests localement**
 ```bash
@@ -171,18 +169,21 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 
 | Test | Vérifie | Statut |
 |------|---------|--------|
-| `test_io.py` | Reprojection correcte vers EPSG:2950. Lecture/écriture GeoPackage sans perte de CRS | ✅ Implanté (reprojection) |
+| `test_io.py` | Reprojection correcte vers EPSG:2950 | ✅ Implanté |
 | `test_config_loader.py` | Chargement et validation de `config.yaml` (sections obligatoires, CRS cible) | ✅ Implanté |
-| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu | ⏳ À écrire |
-| `test_accessibility.py` | Cote d'accessibilité par type de service sur données synthétiques | ⏳ À écrire |
-| `test_demand.py` | Pondération de la demande par la vulnérabilité (aînés par AD) | ⏳ À écrire |
-| `test_validation.py` | Règles d'audit : CRS attendu, géométries valides et non vides, absence de doublons | ⏳ À écrire |
+| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu | ✅ Implanté |
+| `test_accessibility.py` | Cote d'accessibilité par type de service et accès au transport | ✅ Implanté |
+| `test_demand.py` | Extraction de la population et pondération de la demande (aînés par AD) | ✅ Implanté |
+| `test_coverage.py` | Indicateur de couverture des résidents vulnérables par aire de diffusion | ✅ Implanté |
+| `test_buildings.py` | Filtrage des bâtiments résidentiels, dont le cas `yes` croisé avec l'usage du sol | ✅ Implanté |
+| `test_validation.py` | Règles d'audit (CRS, géométries, doublons) et détection des liens traversant la rivière | ✅ Implanté |
+| `test_optimization.py` | Couverture maximale sur une matrice minuscule à solution connue | ✅ Implanté |
 
 ## Livrables attendus
 - Un dépôt GitHub reproductible contenant l'ensemble du pipeline, avec tests unitaires et intégration continue.
-- Une carte interactive de la couverture actuelle (S0) des populations vulnérables, marche et réseau de transport fixe.
-- Une carte interactive des scénarios optimisés (S1) avec la localisation et le type des services recommandés.
-- Une courbe de gain selon le nombre de services ajoutés (de 1 à 5).
+- Deux cartes interactives de la couverture actuelle (S0), marche seule puis marche et transport collectif fixe.
+- Une carte interactive par scénario optimisé (S1, accès à pied), aux paliers de 2, 4, 6 et 8 services ajoutés dans des zones distinctes, avec la localisation et le type de chaque service recommandé.
+- Une courbe de gain selon le nombre de services ajoutés (de 1 à 8).
 - Une analyse de sensibilité d'équité (pondération vulnérable contre population totale).
 - Un chiffrage de l'effet de barrière de la rivière Richelieu.
 - Un rapport final écrit (15 à 20 pages) et une présentation orale (10 à 15 minutes).
@@ -192,22 +193,23 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 | Étape | Statut |
 |-------|--------|
 | Cadrage et réorientation du projet (services essentiels) | ✅ Complété |
-| Structuration du dépôt GitHub (arborescence du projet, `.gitignore`, branches) | 🔄 En cours |
-| Acquisition des données (OSM, recensement, Données Québec, exo, CMM) | 🔄 En cours |
-| Intégration du réseau de transport collectif (arrêts d'autobus, gares et lignes de train) | 🔄 En cours |
+| Structuration du dépôt GitHub (arborescence du projet, `.gitignore`, branches) | ✅ Complété |
+| Acquisition des données (OSM, recensement, Données Québec, exo, CMM) | ✅ Complété |
+| Intégration du réseau de transport collectif (arrêts d'autobus, gares et lignes de train) | ✅ Complété |
 | Environnement conda (`environment.yml`) et dépendances (`requirements.txt`) | ✅ Complété |
-| Tests unitaires (`pytest`) et intégration continue (GitHub Actions) | 🔄 En cours |
-| Vérification et contrôle qualité des données | ⏳ À faire |
-| Validation de la franchissabilité des ponts dans le graphe | ⏳ À faire |
-| Délimitation de la zone d'étude et de la zone tampon | ⏳ À faire |
-| Calcul de l'accessibilité par type de service (état actuel, S0) | ⏳ À faire |
-| Accès complémentaire par le réseau de transport fixe (arrêts, gares) | ⏳ À faire |
-| Pondération de la demande par la vulnérabilité (aînés par AD) | ⏳ À faire |
-| Définition et filtrage des sites candidats | ⏳ À faire |
-| Optimisation par couverture maximale avec `spopt` (S1, n = 1 à 5) | ⏳ À faire |
-| Analyse de sensibilité d'équité | ⏳ À faire |
-| Production des résultats (gains, effet de barrière) | ⏳ À faire |
-| Cartes interactives et graphiques | ⏳ À faire |
+| Tests unitaires (`pytest`) et intégration continue (GitHub Actions) | ✅ Complété |
+| Vérification et contrôle qualité des données | ✅ Complété |
+| Validation de la franchissabilité des ponts dans le graphe | ✅ Complété |
+| Délimitation de la zone d'étude (quatre municipalités riveraines) | ✅ Complété |
+| Calcul de l'accessibilité par type de service (état actuel, S0) | ✅ Complété |
+| Accès complémentaire par le réseau de transport fixe (arrêts, gares) | ✅ Complété |
+| Pondération de la demande par la vulnérabilité (aînés par AD) | ✅ Complété |
+| Définition et filtrage des sites candidats | ✅ Complété |
+| Optimisation par couverture maximale avec `spopt` (S1, n = 1 à 8) | ✅ Complété |
+| Analyse de sensibilité d'équité | ✅ Complété |
+| Production des résultats (gains, effet de barrière) | ✅ Complété |
+| Cartes interactives et graphiques | ✅ Complété |
+| Vérification d'ensemble du projet (résultats, cartes, cohérence du dépôt) | 🔄 En cours |
 | Rédaction du rapport et préparation de la présentation orale | ⏳ À faire |
 
 ## Décisions méthodologiques
@@ -218,15 +220,22 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 - **Posture diagnostique.** L'optimisation indique où le manque est le plus grand et quel type de service le comblerait le mieux, ce qui sert autant les décideurs publics et communautaires que les acteurs privés.
 - **Intégration du réseau de transport collectif (7 juillet 2026).** L'accès aux services ne se mesure pas uniquement par la marche réelle, les villes à l'étude sont desservies par le réseau d'exo. Le réseau fixe (arrêts d'autobus du GTFS de la CITVR, gares de train) est donc intégré comme dimension complémentaire d'accès, les arrêts et gares agissant comme points d'accès vers les services situés au-delà d'une distance marchable.
 - **Réseau fixe seulement, sans horaires ni temps réel (7 juillet 2026).** Seuls les emplacements des arrêts et des gares sont considérés, sans horaires, fréquences ni temps réel. Les villes sont aussi couvertes par un service de transport à la demande, mais les emplacements des arrêts de ce service ne sont pas diffusés ([exo à la demande](https://exoalademande.exo.quebec/search)). À défaut de cette source, l'analyse se limite au réseau fixe, ce qui garde le traitement reproductible et vérifiable.
-- **Rôle du train, complémentaire (7 juillet 2026).** La zone compte deux gares (McMasterville et Mont-Saint-Hilaire, ligne Mont-Saint-Hilaire), soit des points d'accès complémentaires au même titre que les arrêts d'autobus, mais bien moins nombreux. Elles servent surtout d'ancrages ponctuels pour les sites candidats, alors que les arrêts d'autobus (plus denses) constituent la principale couche d'accès. Les lignes de train ne sont conservées que comme contexte cartographique et corridor indicatif.
+- **Rôle du train, complémentaire (7 juillet 2026).** La zone compte deux gares (McMasterville et Mont-Saint-Hilaire, ligne Mont-Saint-Hilaire), soit des points d'accès complémentaires au même titre que les arrêts d'autobus, mais bien moins nombreux. Les arrêts d'autobus (plus denses) constituent la principale couche d'accès au transport dans la couverture S0, et les lignes de train ne sont conservées que comme repère cartographique dans la zone.
 - **Étiquettes OSM des bâtiments résidentiels (9 juillet 2026).** L'expérience de GMQ210 a montré qu'une seule étiquette ne suffit pas à capter toutes les résidences. La liste des valeurs `building` retenues est donc centralisée dans `config.yaml` (dont `house`, absente de la liste GMQ210, et les valeurs usuelles en banlieue québécoise), complétée par les nœuds d'adresse isolés (`addr:housenumber`) et par le réseau piétonnier extrait avec `network_type` défini en configuration. La valeur générique `yes`, ambiguë, ne compte comme résidentielle que si le bâtiment tombe dans un polygone d'usage résidentiel de la CMM (codes 100 à 114). Les types écartés seront journalisés par l'audit afin de vérifier qu'aucun type pertinent ne manque dans la zone.
+- **Pondération de l'importance des services (10 juillet 2026).** Tous les services ne pèsent pas également dans l'autonomie d'une personne âgée. Un poids d'importance par type est défini dans `config.yaml`, les services du quotidien comme l'épicerie et la pharmacie pèsent le plus lourd, l'école pèse peu car elle sert surtout aux déplacements intergénérationnels. Cette pondération guide le choix du panier de services à ajouter et la couverture moyenne affichée sur les cartes, alors que les courbes de gain par type restent présentées en personnes non pondérées.
+- **Transport collectif intégré à la couverture S0 (10 juillet 2026).** L'accès par le réseau fixe est maintenant mesuré dans la couverture. Un résident est couvert pour un type de service s'il l'atteint à pied sous le seuil, ou s'il atteint un arrêt à distance de marche alors qu'un arrêt du réseau se trouve aussi à distance de marche d'un service de ce type. Le réseau fixe local est traité comme un tout connecté, sans horaires ni correspondances, une simplification assumée qui reste cohérente avec la décision du 7 juillet. Deux cartes S0 sont produites, marche seule puis marche avec transport, ce qui rend l'apport du réseau directement visible.
+- **Scénarios S1 en panier de services mixte (10 juillet 2026).** Plutôt que d'ajouter n services d'un même type, chaque étape du scénario retient le type et le site qui rapportent le plus une fois pondérés par l'importance, en résolvant une couverture maximale à un site par type sur la demande encore non couverte. Le panier final peut donc mélanger une épicerie, une pharmacie et d'autres types, et chaque étape produit sa carte avec la couverture recalculée, ce qui rend le gain visible aire par aire.
+- **Zone d'étude élargie aux quatre municipalités, sans zone tampon (10 juillet 2026).** Les premières cartes ont montré que les services se concentrent au cœur des villes et que les aires de diffusion de McMasterville et d'Otterburn Park laissaient des vides incohérents à l'affichage. La demande, les services, les résidences et le transport de ces deux municipalités sont donc intégrés à l'étude au même titre que Beloeil et Mont-Saint-Hilaire, et le principe de zone tampon est retiré. L'effet de bordure résiduel aux limites est documenté comme une limite du projet.
+- **Scénarios S1 recentrés sur la marche, dans des zones distinctes (10 juillet 2026).** Les cartes S0 montrent que le réseau de transport dessert déjà bien les aînés dans la situation actuelle. L'optimisation vise donc l'accès à pied, celui qui mérite le plus d'être amélioré. Pour éviter que tous les ajouts se concentrent au même endroit, un site choisi ferme ses environs immédiats (moins de la distance d'espacement configurée, 500 m) aux étapes suivantes, chaque ajout dessert ainsi une zone différente avec le service le plus pertinent pour cette zone.
+- **Sites candidats hors du tissu résidentiel (10 juillet 2026).** Les premiers scénarios plaçaient parfois un service sur un terrain résidentiel déjà occupé. Les codes résidentiels de la CMM sont donc exclus des sites candidats, un nouveau service ne peut s'implanter que sur un terrain commercial, de bureau, institutionnel ou vacant, ce qui rend les recommandations directement plaidables auprès des décideurs.
 
 ## Difficultés rencontrées
 - **Complétude d'OpenStreetMap.** La qualité des données en milieu périurbain (Beloeil et Mont-Saint-Hilaire) peut varier, pour le réseau comme pour les services. Aucune couche équivalente de Données Québec ou de la MRC n'est diffusée pour permettre un croisement systématique. La vérification s'appuiera donc sur l'imagerie aérienne (orthophotos) et une inspection manuelle ciblée, et les manques résiduels seront documentés comme une limite du projet.
 - **Franchissabilité des ponts dans OSM.** La franchissabilité piétonne des ponts sur le Richelieu doit être validée à partir de ce qu'OSM fournit réellement (présence ou non des trottoirs sur les ponts). État : à vérifier. Piste : un module dédié (`bridges.py`) contrôle la présence d'un chemin piéton continu d'une rive à l'autre, croisé au besoin avec l'imagerie aérienne (orthophotos).
 - **Données du transport à la demande indisponibles.** Les emplacements des arrêts du service exo à la demande ne sont pas diffusés publiquement. État : contourné. Piste : se limiter au réseau fixe (arrêts du GTFS et gares de train).
 - **Hétérogénéité des systèmes de coordonnées.** Les sources arrivent dans des CRS différents (OSM et exo en EPSG:4326, aires de diffusion en EPSG:3347, limites municipales en EPSG:4269, utilisation du sol en EPSG:32188). État : maîtrisé. Piste : une fonction de reprojection unique vers EPSG:2950, couverte par un test unitaire, appliquée à toutes les couches avant analyse pour éviter les jointures spatiales silencieusement fausses.
-- **Effet de bordure spatiale.** Découper l'analyse strictement aux frontières municipales aurait ignoré des commerces limitrophes essentiels, la zone tampon règle ce problème, tout en mesurant la demande uniquement dans Beloeil et Mont-Saint-Hilaire.
+- **Effet de bordure spatiale.** Les services situés juste au-delà des limites de la zone d'étude ne sont pas comptés. L'observation des cartes montre que les services se concentrent au cœur des quatre municipalités et non aux franges, l'effet résiduel est donc jugé faible et documenté comme une limite du projet.
 - **Agrégation des données de recensement.** La demande est diffusée par aire de diffusion, pas par adresse, alors que le calcul d'accessibilité se fait entre points précis (résidences et services), ce qui introduit une perte de précision à garder en tête.
-- **Choix du facteur de vulnérabilité.** Le facteur est limité aux données disponibles. Un seul critère est retenu (65 ans et plus) par souci de simplicité, alors que plusieurs pourraient être combinés et pondérés. 
-- **Modélisation simplifiée de l'offre et de la demande.** La demande compte les personnes sans nuance d'intensité du besoin, et l'offre traite chaque service comme équivalent, sans tenir compte de sa taille ni de sa capacité. Ces raffinements sont écartés par manque de données.
+- **Choix du facteur de vulnérabilité.** Le facteur est limité aux données disponibles. Un seul critère est retenu (65 ans et plus) par souci de simplicité, alors que plusieurs pourraient être combinés et pondérés.
+- **Modélisation simplifiée de l'offre et de la demande.** La demande correspond au compte d'aînés par aire de diffusion, chaque personne pèse également, sans nuance d'intensité du besoin. Du côté de l'offre, l'importance relative des types de services est pondérée dans la configuration (une épicerie pèse plus lourd qu'un bureau de poste pour l'autonomie des aînés), mais à l'intérieur d'un même type chaque service reste traité comme équivalent, sans égard à sa taille ni à sa capacité d'accueil. Ces raffinements demanderaient des données d'achalandage et de capacité qui ne sont pas diffusées.
+- **Pondération d'importance non validée auprès des aînés.** Les poids d'importance attribués aux types de services n'ont pas été établis en consultant la communauté aînée, ils ont été fixés dans le cadre du projet selon notre propre jugement, en s'appuyant sur le rôle de chaque service dans l'autonomie du quotidien. Une enquête ou un groupe de discussion permettrait de valider ou d'ajuster ces poids, la configuration centralisée rend d'ailleurs cet ajustement immédiat.
