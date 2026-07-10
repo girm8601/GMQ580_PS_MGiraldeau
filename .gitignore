@@ -19,6 +19,10 @@ data/processed/*
 *.gpkg
 *.graphml
 
+# Journaux d'execution du pipeline
+logs/
+*.log
+
 # Tests et couverture
 .pytest_cache/
 .coverage
