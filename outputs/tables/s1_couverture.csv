@@ -1,0 +1,10 @@
+n_services,type_ajoute,site_id,aines_gagnes,taux_pondere
+0,,,0.0,0.2177
+1,pharmacie,354,900.7,0.2241
+2,epicerie,164,774.8,0.2301
+3,epicerie,414,654.7,0.2354
+4,sante,346,639.3,0.2419
+5,sante,553,612.8,0.2491
+6,sante,551,596.2,0.2566
+7,pharmacie,231,520.0,0.2653
+8,pharmacie,78,497.2,0.2722

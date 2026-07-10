@@ -1,0 +1,9 @@
+ordre,type_service,site_id,provenance,recommandation,x,y
+1,pharmacie,354,utilisation_sol,"pharmacie, ajout numero 1",329806.8,5049088.8
+2,epicerie,164,utilisation_sol,"epicerie, ajout numero 2",326406.9,5047530.8
+3,epicerie,414,utilisation_sol,"epicerie, ajout numero 3",329010.1,5049101.8
+4,sante,346,utilisation_sol,"sante, ajout numero 4",328853.1,5047016.6
+5,sante,553,utilisation_sol,"sante, ajout numero 5",326062.0,5046114.2
+6,sante,551,utilisation_sol,"sante, ajout numero 6",326367.4,5044957.1
+7,pharmacie,231,utilisation_sol,"pharmacie, ajout numero 7",326299.6,5047029.1
+8,pharmacie,78,utilisation_sol,"pharmacie, ajout numero 8",328109.1,5048174.1
