@@ -1,23 +1,27 @@
-# Objectif, verifier l'extraction de la population et la ponderation de la
-# demande par aire de diffusion sur des donnees synthetiques.
+# Objectif, verifier l'extraction de la population, la ponderation de la demande
+# et la repartition des aines sur les residences, sur des donnees synthetiques.
 
 import logging
 
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import Polygon
 
-from src.processing.demand import extract_population, weight_demand
+from src.processing.demand import (
+    distribute_demand_to_residences,
+    extract_population,
+    weight_demand,
+)
 
 logger = logging.getLogger("test_demand")
 
 # Configuration synthetique identique aux cles de config.yaml.
 VULN_CONFIG = {
-    "champ_jointure_ad": "IDUGD",
-    "colonne_caracteristique": "ID_CARAC",
-    "colonne_valeur": "VALEUR",
-    "caracteristique_id": 24,
-    "population_totale_id": 1,
+    "ad_join_field": "IDUGD",
+    "characteristic_column": "ID_CARAC",
+    "value_column": "VALEUR",
+    "characteristic_id": 24,
+    "total_population_id": 1,
 }
 
 
@@ -32,20 +36,20 @@ def make_census():
     )
 
 
-def test_extraction_population():
+def test_extract_population():
     """Les bonnes caracteristiques doivent etre extraites et typees."""
     population = extract_population(make_census(), VULN_CONFIG)
     row_a1 = population[population["IDUGD"] == "A1"].iloc[0]
-    assert row_a1["population_totale"] == 1000.0
-    assert row_a1["aines"] == 200.0
+    assert row_a1["population_total"] == 1000.0
+    assert row_a1["seniors"] == 200.0
 
 
-def test_valeur_non_numerique_devient_zero():
+def test_non_numeric_value_becomes_zero():
     """Une valeur supprimee par confidentialite ne doit pas casser l'extraction."""
     census = make_census()
     census.loc[1, "VALEUR"] = ".."
     population = extract_population(census, VULN_CONFIG)
-    assert population[population["IDUGD"] == "A1"].iloc[0]["aines"] == 0.0
+    assert population[population["IDUGD"] == "A1"].iloc[0]["seniors"] == 0.0
 
 
 def make_ad_gdf():
@@ -60,12 +64,31 @@ def make_ad_gdf():
     )
 
 
-def test_jointure_et_taux():
+def test_join_and_rate():
     """L'aire sans correspondance recoit zero et le taux reflete la jointure."""
     population = extract_population(make_census(), VULN_CONFIG)
     merged, join_rate = weight_demand(make_ad_gdf(), population, "IDUGD", logger)
     assert join_rate == 0.5
     row_a3 = merged[merged["IDUGD"] == "A3"].iloc[0]
-    assert row_a3["aines"] == 0.0
+    assert row_a3["seniors"] == 0.0
     row_a1 = merged[merged["IDUGD"] == "A1"].iloc[0]
-    assert row_a1["aines"] == 200.0
+    assert row_a1["seniors"] == 200.0
+
+
+def test_distribute_demand_to_residences():
+    """Les aines d'une aire doivent se repartir egalement sur ses residences."""
+    areas = pd.DataFrame(
+        {
+            "IDUGD": ["A1", "A2"],
+            "seniors": [10.0, 4.0],
+            "population_total": [100.0, 40.0],
+        }
+    )
+    residences = pd.DataFrame(
+        {"residence_id": [0, 1, 2, 3], "IDUGD": ["A1", "A1", "A2", "A2"]}
+    )
+    out = distribute_demand_to_residences(residences, areas, "IDUGD")
+    assert out.loc[out["residence_id"] == 0, "seniors_weight"].iloc[0] == 5.0
+    assert out.loc[out["residence_id"] == 2, "seniors_weight"].iloc[0] == 2.0
+    assert abs(out["seniors_weight"].sum() - 14.0) < 1e-9
+    assert abs(out["population_weight"].sum() - 140.0) < 1e-9
