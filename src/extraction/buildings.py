@@ -1,10 +1,11 @@
 """Batiments residentiels OpenStreetMap, filtrage et points d'origine.
 
-L'experience de GMQ210 a montre qu'une seule etiquette ne suffit pas. La
-liste des valeurs retenues vient de config.yaml. La valeur generique yes ne
-compte comme residentielle que si le batiment tombe dans un polygone d'usage
+L'experience de GMQ210 a montre qu'une seule etiquette ne suffit pas. La liste
+des valeurs retenues vient de config.yaml. La valeur generique yes ne compte
+comme residentielle que si le batiment tombe dans un polygone d'usage
 residentiel de la CMM, decision documentee au README. Les noeuds d'adresse
-isoles completent les batiments manquants.
+isoles completent les batiments manquants. Chaque residence porte une etiquette
+d'adresse construite a partir du numero civique et de la rue.
 """
 
 from __future__ import annotations
@@ -17,6 +18,20 @@ import pandas as pd
 from src.io import reproject
 
 
+def build_address_label(row, housenumber_field, street_field):
+    """Construit l'etiquette d'adresse a partir du numero civique et de la rue.
+
+    Retourne None si aucune information d'adresse n'est disponible, l'appelant
+    remplace alors par une etiquette generique.
+    """
+    housenumber = row.get(housenumber_field)
+    street = row.get(street_field)
+    housenumber = "" if pd.isna(housenumber) else str(housenumber)
+    street = "" if pd.isna(street) else str(street)
+    combined = (housenumber + " " + street).strip()
+    return combined if combined else None
+
+
 def filter_residential(buildings_gdf, buildings_config, residential_zones=None):
     """Filtre les batiments residentiels et compte les types ecartes.
 
@@ -24,8 +39,8 @@ def filter_residential(buildings_gdf, buildings_config, residential_zones=None):
     leur compte, journalise ensuite pour verifier qu'aucun type pertinent ne
     manque dans la zone.
     """
-    tag_field = buildings_config["champ"]
-    kept_types = list(buildings_config["types_retenus"])
+    tag_field = buildings_config["field"]
+    kept_types = list(buildings_config["kept_types"])
     generic_value = "yes"
 
     values = buildings_gdf[tag_field]
@@ -47,20 +62,25 @@ def filter_residential(buildings_gdf, buildings_config, residential_zones=None):
 
 def residential_land_use(land_use_gdf, config):
     """Retourne les polygones d'usage residentiel de la CMM."""
-    code_field = config["utilisation_sol"]["champ_code"]
-    residential_codes = config["batiments_residentiels"]["codes_sol_residentiels"]
+    code_field = config["land_use"]["code_field"]
+    residential_codes = config["residential_buildings"]["residential_land_use_codes"]
     codes = pd.to_numeric(land_use_gdf[code_field], errors="coerce")
     return land_use_gdf[codes.isin(residential_codes)].copy()
 
 
 def load_residences(config, land_use_gdf, logger=None):
     """Charge les residences, batiments filtres et adresses isolees en points."""
-    raw_folder = config["chemins"]["data_raw"]
+    buildings_config = config["residential_buildings"]
+    housenumber_field = buildings_config["housenumber_field"]
+    street_field = buildings_config["street_field"]
+    tag_field = buildings_config["field"]
+    processed_folder = config["paths"]["data_processed"]
+
     buildings_path = os.path.join(
-        raw_folder, config["chemins"]["fichiers_osm"]["batiments"]
+        processed_folder, config["paths"]["osm_files"]["buildings"]
     )
     addresses_path = os.path.join(
-        raw_folder, config["chemins"]["fichiers_osm"]["adresses"]
+        processed_folder, config["paths"]["osm_files"]["addresses"]
     )
     if not os.path.exists(buildings_path):
         raise FileNotFoundError(
@@ -68,10 +88,10 @@ def load_residences(config, land_use_gdf, logger=None):
         )
 
     buildings = gpd.read_file(buildings_path)
-    buildings = reproject(buildings, config["crs_cible"])
+    buildings = reproject(buildings, config["target_crs"])
     zones = residential_land_use(land_use_gdf, config)
     residential, excluded_counts = filter_residential(
-        buildings, config["batiments_residentiels"], zones
+        buildings, buildings_config, zones
     )
     if logger is not None:
         logger.info(
@@ -84,28 +104,36 @@ def load_residences(config, land_use_gdf, logger=None):
         ]:
             logger.info("Type de batiment ecarte, %s, %d entite(s)", tag_value, count)
 
-    residential = residential.copy()
-    residential["geometry"] = residential.geometry.representative_point()
-    residential["source"] = "batiment"
-    frames = [residential[["geometry", "source"]]]
+    def with_address(gdf, source):
+        """Ajoute l'etiquette d'adresse, la source et le point representatif."""
+        gdf = gdf.copy()
+        gdf["address"] = gdf.apply(
+            lambda row: build_address_label(row, housenumber_field, street_field),
+            axis=1,
+        )
+        gdf["geometry"] = gdf.geometry.representative_point()
+        gdf["source"] = source
+        return gdf[["geometry", "source", "address"]]
+
+    frames = [with_address(residential, "batiment")]
 
     # Les noeuds d'adresse isoles completent les batiments non cartographies.
     if os.path.exists(addresses_path):
         addresses = gpd.read_file(addresses_path)
-        addresses = reproject(addresses, config["crs_cible"])
-        tag_field = config["batiments_residentiels"]["champ"]
+        addresses = reproject(addresses, config["target_crs"])
         if tag_field in addresses.columns:
             addresses = addresses[addresses[tag_field].isna()]
-        addresses = addresses.copy()
-        addresses["geometry"] = addresses.geometry.representative_point()
-        addresses["source"] = "adresse"
-        frames.append(addresses[["geometry", "source"]])
+        frames.append(with_address(addresses, "adresse"))
         if logger is not None:
-            logger.info("Noeuds d'adresse isoles ajoutes, %d", len(addresses))
+            logger.info("Noeuds d'adresse isoles ajoutes, %d", len(frames[-1]))
 
     residences = gpd.GeoDataFrame(
-        pd.concat(frames, ignore_index=True), crs=config["crs_cible"]
+        pd.concat(frames, ignore_index=True), crs=config["target_crs"]
     )
     residences = residences.drop_duplicates(subset=["geometry"]).reset_index(drop=True)
     residences["residence_id"] = residences.index
+    missing_address = residences["address"].isna()
+    residences.loc[missing_address, "address"] = "Residence " + residences.loc[
+        missing_address, "residence_id"
+    ].astype(str)
     return residences

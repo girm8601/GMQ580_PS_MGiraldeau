@@ -1,10 +1,10 @@
 """Lecture du profil du recensement 2021 par aire de diffusion.
 
-Le fichier provincial fait plusieurs gigaoctets, il est donc lu par morceaux
-et filtre au vol sur les deux caracteristiques utiles, la population totale
-et les 65 ans et plus. Le resultat filtre est mis en cache dans
-data_processed pour que les executions suivantes soient rapides. L'encodage
-latin-1 vient de la configuration, comme documente dans la fiche d'audit.
+Le fichier provincial fait plusieurs gigaoctets, il est donc lu par morceaux et
+filtre au vol sur les deux caracteristiques utiles, la population totale et les
+65 ans et plus. Le resultat filtre est mis en cache dans data_processed pour que
+les executions suivantes soient rapides. L'encodage latin-1 vient de la
+configuration, comme documente dans la fiche d'audit.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ import pandas as pd
 def _cache_path(config):
     """Chemin du profil filtre mis en cache dans data_processed."""
     return os.path.join(
-        config["chemins"]["data_processed"],
-        config["chemins"]["fichiers_processed"]["profil_recensement"],
+        config["paths"]["data_processed"],
+        config["paths"]["processed_files"]["census_profile"],
     )
 
 
@@ -26,13 +26,13 @@ def load_census_profile(config, logger=None):
     """Charge les lignes utiles du profil, depuis le cache s'il existe.
 
     Seules les colonnes necessaires sont conservees, la cle de jointure,
-    l'identifiant de caracteristique et la valeur totale. Supprimer le
-    fichier cache force une relecture complete du fichier source.
+    l'identifiant de caracteristique et la valeur totale. Supprimer le fichier
+    cache force une relecture complete du fichier source.
     """
-    vulnerability = config["vulnerabilite"]
-    join_field = vulnerability["champ_jointure_ad"]
-    id_field = vulnerability["colonne_caracteristique"]
-    value_field = vulnerability["colonne_valeur"]
+    vulnerability = config["vulnerability"]
+    join_field = vulnerability["ad_join_field"]
+    id_field = vulnerability["characteristic_column"]
+    value_field = vulnerability["value_column"]
 
     cache = _cache_path(config)
     if os.path.exists(cache):
@@ -42,17 +42,17 @@ def load_census_profile(config, logger=None):
         return profile
 
     path = os.path.join(
-        config["chemins"]["data_raw"],
-        config["chemins"]["fichiers"]["profil_recensement"],
+        config["paths"]["data_raw"],
+        config["paths"]["manual_files"]["census_profile"],
     )
     wanted_ids = [
-        vulnerability["population_totale_id"],
-        vulnerability["caracteristique_id"],
+        vulnerability["total_population_id"],
+        vulnerability["characteristic_id"],
     ]
     chunks = []
     reader = pd.read_csv(
         path,
-        encoding=vulnerability["encodage_csv"],
+        encoding=vulnerability["csv_encoding"],
         usecols=[join_field, id_field, value_field],
         dtype={join_field: str},
         chunksize=500_000,

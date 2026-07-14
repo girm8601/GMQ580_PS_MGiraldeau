@@ -1,8 +1,9 @@
 """Services essentiels OpenStreetMap, lecture et typage par le projet.
 
-Chaque point d'interet recoit le type de service du projet, epicerie,
-pharmacie et les autres, selon les etiquettes amenity et shop declarees
-dans config.yaml. Les entites sans type reconnu sont ecartees.
+Chaque point d'interet recoit le type de service du projet, pharmacy, health
+et les autres, selon les etiquettes amenity et shop declarees dans config.yaml.
+Les entites sans type reconnu sont ecartees. Les cles de type sont en anglais,
+un libelle francais est ajoute pour l'affichage.
 """
 
 from __future__ import annotations
@@ -29,8 +30,8 @@ def flatten_service_tags(services_config):
 def assign_service_type(pois_gdf, services_config):
     """Attribue a chaque point d'interet son type de service du projet.
 
-    Le premier type dont une etiquette correspond est retenu. Les entites
-    sans correspondance recoivent None et seront ecartees par l'appelant.
+    Le premier type dont une etiquette correspond est retenu. Les entites sans
+    correspondance recoivent None et seront ecartees par l'appelant.
     """
 
     def type_for_row(row):
@@ -48,21 +49,24 @@ def assign_service_type(pois_gdf, services_config):
 def load_services(config, logger=None):
     """Charge les points d'interet OSM, les type et les projette."""
     path = os.path.join(
-        config["chemins"]["data_raw"], config["chemins"]["fichiers_osm"]["services"]
+        config["paths"]["data_processed"], config["paths"]["osm_files"]["services"]
     )
     if not os.path.exists(path):
         raise FileNotFoundError(
             f"Services OSM introuvables, {path}. Lancer d'abord download_data.py"
         )
     pois = gpd.read_file(path)
-    pois = assign_service_type(pois, config["services_essentiels"])
+    pois = assign_service_type(pois, config["essential_services"])
     typed = pois[pois["service_type"].notna()].copy()
     # Les surfaces deviennent des points pour le calcul des distances.
     typed["geometry"] = typed.geometry.representative_point()
+    if "name" not in typed.columns:
+        typed["name"] = ""
+    typed["name"] = typed["name"].fillna("")
     if logger is not None:
         logger.info(
             "Services essentiels types, %d sur %d points d'interet",
             len(typed),
             len(pois),
         )
-    return reproject(typed, config["crs_cible"])
+    return reproject(typed, config["target_crs"])
