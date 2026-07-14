@@ -1,163 +1,218 @@
 # Configuration centrale du projet.
-# Tous les parametres sont ici : aucun chemin, CRS, seuil ou nom de champ code en dur ailleurs.
-# Charge par config_loader.py.
+# Tous les parametres sont ici, aucun chemin, CRS, seuil ou nom de champ code en dur ailleurs.
+# Charge par config_loader.py. Les cles sont en anglais, les libelles d'affichage restent en francais.
 
 # --- Systemes de coordonnees ---
-crs_cible: "EPSG:2950"              # NAD83(CSRS) / MTM zone 8 : CRS commun a toutes les couches
-crs_sources:                        # CRS d'origine de chaque source (reference et audit)
+target_crs: "EPSG:2950"              # NAD83(CSRS) / MTM zone 8, CRS commun a toutes les couches
+source_crs:                          # CRS d'origine de chaque source (reference et audit)
   osm: "EPSG:4326"
-  aires_diffusion: "EPSG:3347"
-  limites_municipales: "EPSG:4269"
-  utilisation_sol: "EPSG:32188"
-  transport_exo: "EPSG:4326"
+  dissemination_areas: "EPSG:3347"
+  municipal_limits: "EPSG:4269"
+  land_use: "EPSG:32188"
+  transit_exo: "EPSG:4326"
 
 # --- Zone d'etude ---
-# Les quatre municipalites riveraines contigues forment la zone d'etude au
-# complet. La demande, les services, le reseau et le transport y sont tous
-# mesures, sans zone tampon, les services se concentrent au coeur des villes.
-zone_etude:
-  municipalites:
+# Les quatre municipalites riveraines contigues forment la zone d'etude au complet.
+study_area:
+  municipalities:
     - "Beloeil"
     - "Mont-Saint-Hilaire"
     - "McMasterville"
     - "Otterburn Park"
-  champ_nom_municipalite: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
-  rive_ouest:                            # municipalites a l'ouest du Richelieu (pour l'effet de barriere)
+  municipality_name_field: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
+  west_bank:                              # municipalites a l'ouest du Richelieu (effet de barriere)
     - "Beloeil"
     - "McMasterville"
-  rive_est:                              # municipalites a l'est du Richelieu
+  east_bank:                              # municipalites a l'est du Richelieu
     - "Mont-Saint-Hilaire"
     - "Otterburn Park"
 
 # --- Reseau pietonnier (OSMnx) ---
-reseau_pieton:
+walk_network:
   network_type: "walk"              # rues, trottoirs et sentiers marchables (comme GMQ210)
 
 # --- Batiments residentiels (etiquettes OSM) ---
-batiments_residentiels:
-  champ: "building"
-  # Valeurs retenues comme residentielles : liste de GMQ210 completee des
-  # valeurs usuelles en banlieue quebecoise (house, bungalow, duplex).
-  # La valeur generique "yes" est ambigue : elle ne compte comme residentielle
-  # que si le batiment tombe dans un polygone d'usage residentiel de la CMM
-  # (codes 100 a 114). Les types ecartes seront journalises par l'audit.
-  types_retenus: ["house", "detached", "apartments", "residential", "yes",
-                  "static_caravan", "semidetached_house", "terrace", "farm",
-                  "bungalow", "duplex"]
-  codes_sol_residentiels: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114]
-  tag_adresses: "addr:housenumber"  # noeuds d'adresse isoles, complement des batiments (comme GMQ210)
+residential_buildings:
+  field: "building"
+  # Valeurs retenues comme residentielles, liste de GMQ210 completee des valeurs
+  # usuelles en banlieue quebecoise (house, bungalow, duplex). La valeur generique
+  # "yes" ne compte comme residentielle que si le batiment tombe dans un polygone
+  # d'usage residentiel de la CMM (codes 100 a 104, 112, 113 et 114).
+  kept_types: ["house", "detached", "apartments", "residential", "yes",
+               "static_caravan", "semidetached_house", "terrace", "farm",
+               "bungalow", "duplex"]
+  residential_land_use_codes: [100, 101, 102, 103, 104, 112, 113, 114]
+  address_tag: "addr:housenumber"   # noeuds d'adresse isoles, complement des batiments
+  street_field: "addr:street"       # rue de l'adresse, pour l'etiquette affichee
+  housenumber_field: "addr:housenumber"
 
-# --- Marche a pied ---
-# Deux mesures complementaires (voir README) :
-#  - couverture : un lieu est couvert si un service est atteint a pied sous le seuil
-#  - cote par type de service : paliers de distance repris de GMQ210
-seuils_couverture_m: [400, 800]     # bassins pietons usuels (~5 et ~10 min), adaptes aux aines
-seuils_cote_m:                      # repris de GMQ210 : [distance max en m, cote]
-  - [1000, 4]                       # moins de 1 km : cote 4
-  - [2000, 3]                       # 1 a 2 km : cote 3
-  - [3000, 2]                       # 2 a 3 km : cote 2
-  - [999999, 1]                     # plus de 3 km : cote 1
+# --- Marche a pied, cotes de proximite ---
+# Paliers de distance de marche vers un service, propres a chaque population.
+# Les aines tolerent des distances plus courtes que la population generale.
+quality_bands:
+  seniors:                          # [distance max en m, libelle]
+    - [200, "Excellent"]            # moins de 200 m
+    - [400, "Tres bien"]            # 200 a 400 m
+    - [600, "Bien"]                 # 400 a 600 m
+    - [800, "Acceptable"]           # 600 a 800 m
+    - [999999, "Insuffisant"]       # plus de 800 m
+  population_total:                 # [distance max en m, libelle]
+    - [400, "Excellent"]            # moins de 400 m
+    - [600, "Tres bien"]            # 400 a 600 m
+    - [800, "Bien"]                 # 600 a 800 m
+    - [1000, "Acceptable"]          # 800 a 1000 m
+    - [999999, "Insuffisant"]       # plus de 1000 m
+# Fraction de points accordee par palier pour un service. Etre proche d'un service
+# important pese lourd, etre loin d'un service moins important pese peu.
+band_fractions:
+  Excellent: 1.0
+  "Tres bien": 0.75
+  Bien: 0.5
+  Acceptable: 0.3
+  Insuffisant: 0.0
+# Paliers du pourcentage global d'accessibilite vers le libelle qualitatif d'une residence.
+overall_quality_ratios:             # [ratio minimal du pourcentage, libelle]
+  - [0.80, "Excellent"]
+  - [0.70, "Tres bien"]
+  - [0.50, "Bien"]
+  - [0.30, "Acceptable"]
+  - [0.00, "Insuffisant"]
 
 # --- Acces au transport collectif (reseau fixe) ---
-transport:
-  distance_max_arret_m: 500         # un arret compte comme accessible s'il est a <= 500 m a pied
-  route_types_fixes: [3]            # GTFS : 3 = autobus (reseau fixe)
-  route_types_exclus: [1501]        # GTFS : 1501 = sur reservation (a la demande, exclu)
-  champ_lat: "stop_lat"
-  champ_lon: "stop_lon"
-  gares_pertinentes: ["Gare McMasterville", "Gare Mont-Saint-Hilaire"]  # points d'acces (ligne Mont-Saint-Hilaire)
-  ligne_train_contexte: "Ligne Mont-Saint-Hilaire"                      # gardee pour la carte et comme corridor indicatif, pas comme point d'acces
+transit:
+  max_stop_distance_m: 500          # un arret compte comme accessible s'il est a <= 500 m a pied
+  fixed_route_types: [3]            # GTFS, 3 = autobus (reseau fixe)
+  demand_route_types: [1501]        # GTFS, 1501 = sur reservation (a la demande, exclu)
+  lat_field: "stop_lat"
+  lon_field: "stop_lon"
+  relevant_stations: ["Gare McMasterville", "Gare Mont-Saint-Hilaire"]
+  context_train_line: "Ligne Mont-Saint-Hilaire"
 
 # --- Demande et vulnerabilite ---
-vulnerabilite:
-  critere: "65 ans et plus"
-  caracteristique_id: 24            # ID_CARACTERISTIQUE du 65 ans et plus (compte)
-  population_totale_id: 1           # ID_CARACTERISTIQUE de la population totale 2021
-  colonne_valeur: "C1_CHIFFRE_TOTAL"
-  champ_jointure_ad: "IDUGD"        # cle limites <-> profil (aussi ADIDU disponible)
-  encodage_csv: "latin-1"           # encodage du profil StatCan (colonnes accentuees)
-  colonne_caracteristique: "ID_CARACTÉRISTIQUE"   # nom exact de la colonne dans le CSV
+vulnerability:
+  criterion: "65 ans et plus"
+  characteristic_id: 24             # ID_CARACTERISTIQUE du 65 ans et plus (compte)
+  total_population_id: 1            # ID_CARACTERISTIQUE de la population totale 2021
+  value_column: "C1_CHIFFRE_TOTAL"
+  ad_join_field: "IDUGD"            # cle limites <-> profil
+  csv_encoding: "latin-1"           # encodage du profil StatCan (colonnes accentuees)
+  characteristic_column: "ID_CARACTÉRISTIQUE"   # nom exact de la colonne dans le CSV
 
 # --- Services essentiels (etiquettes OSM) ---
-services_essentiels:
-  epicerie:
-    shop: ["supermarket", "grocery", "convenience", "greengrocer"]
-  pharmacie:
+# Cles internes en anglais, un libelle francais est defini plus bas pour l'affichage.
+# Seule la sante regroupe plusieurs etiquettes, tous les autres types sont distincts.
+essential_services:
+  pharmacy:
     amenity: ["pharmacy"]
-  sante:
-    amenity: ["clinic", "doctors", "hospital"]
-  banque:
-    amenity: ["bank"]
-  poste:
-    amenity: ["post_office"]
-  ecole:
+  school:
     amenity: ["school"]
-  bibliotheque:
-    amenity: ["library"]
-  communautaire:
-    amenity: ["social_facility", "community_centre"]
+  kindergarten:
+    amenity: ["kindergarten"]
+  bank:
+    amenity: ["bank"]
+  health:
+    amenity: ["hospital", "clinic", "doctors"]
+  dentist:
+    amenity: ["dentist"]
+  veterinary:
+    amenity: ["veterinary"]
+  supermarket:
+    shop: ["supermarket"]
+  convenience:
+    shop: ["convenience"]
 
 # --- Utilisation du sol (filtrage des sites candidats) ---
-utilisation_sol:
-  champ_code: "UTIL_SOL"
-  # Codes CMM exclus comme sites candidats :
-  #   100-114 residentiel (on n'implante pas un service dans une cour),
-  #   400 industrie, 600 parc/espace vert, 700/710/720/725/750/760 utilite publique et infrastructure,
-  #   800 agricole, 1000 hydrographie, 1100 golf.
-  # Conserves comme candidats : 200 commerciale, 300 bureau,
-  #   510/520 institutionnel, 900 terrain vacant (souvent le meilleur candidat).
-  codes_exclus: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
-                 400, 600, 700, 710, 720, 725, 750, 760, 800, 1000, 1100]
+# Un site candidat doit etre un vrai terrain commercial. Le code 200 de la CMM est
+# croise avec un polygone OpenStreetMap landuse=commercial, ce qui ecarte les erreurs
+# de la CMM situees en reserve naturelle ou en zone non commerciale. Le site doit
+# aussi se trouver pres du reseau pietonnier pour etre accessible.
+land_use:
+  code_field: "UTIL_SOL"
+  candidate_codes: [200]            # 200 = commerciale (CMM)
+  road_max_distance_m: 150          # distance maximale d'un site candidat au reseau
 
 # --- Optimisation (spopt, couverture maximale) ---
-optimisation:
+optimization:
   n_services_min: 1
-  n_services_max: 8
-  seuil_couverture_m: 800                        # un lieu est couvert si le service est a moins de 800 m de marche
-  espacement_sites_m: 500                        # distance minimale entre deux sites ajoutes (zones distinctes)
-  cartes_aux_etapes: [2, 4, 6, 8]                # etapes du panier qui produisent une carte
-  ponderations: ["aines", "population_totale"]   # analyse de sensibilite d'equite
+  n_services_max: 10
+  coverage_threshold_seniors_m: 800       # un aine est couvert si le service est a moins de 800 m
+  coverage_threshold_population_m: 1000    # la population generale tolere jusqu'a 1000 m
+  matrix_cutoff_m: 1000                    # portee maximale de la matrice de distances
+  site_spacing_m: 500                      # distance minimale entre deux sites ajoutes
+  map_steps_seniors: [2, 6, 10]            # etapes des cartes S1 pour les aines
+  map_steps_population: [10]               # etape de la carte S1 pour la population generale
+  weightings: ["seniors", "population_total"]   # analyse de sensibilite d'equite
 
-# --- Importance des services pour les aines ---
-# Ponderation utilisee pour choisir le panier de services a ajouter (S1) et
-# pour la couverture moyenne affichee sur les cartes. Les services du
-# quotidien essentiels a l'autonomie pesent plus lourd que les services
-# occasionnels. L'ecole pese peu, elle sert surtout aux deplacements
-# intergenerationnels.
-importance_services:
-  epicerie: 1.0
-  pharmacie: 1.0
-  sante: 0.9
-  communautaire: 0.8
-  banque: 0.7
-  poste: 0.5
-  bibliotheque: 0.5
-  ecole: 0.3
+# --- Importance des services, deux jeux de poids ---
+# Un jeu pour les aines et un pour la population generale, car les deux populations ne
+# privilegient pas les memes services. Les poids guident la cote sur 100 par residence,
+# le choix du panier a ajouter (S1) et la couverture moyenne des cartes.
+importance_seniors:
+  pharmacy: 1.0
+  convenience: 0.9
+  supermarket: 0.8
+  health: 0.7
+  bank: 0.6
+  veterinary: 0.5
+  dentist: 0.4
+  school: 0.3
+  kindergarten: 0.2
+importance_population_total:
+  convenience: 1.0
+  supermarket: 0.9
+  pharmacy: 0.8
+  school: 0.7
+  kindergarten: 0.6
+  health: 0.5
+  dentist: 0.4
+  veterinary: 0.3
+  bank: 0.2
 
 # --- Visualisation (cartes interactives) ---
-visualisation:
-  couleur_arrets: "#5a5a5a"         # gris, arrets d'autobus
-  couleur_gares: "#000000"          # noir, gares et lignes de train
-  couleur_services: "#7a4a20"       # brun, services essentiels existants
-  couleur_sites: "#7a4a20"          # brun, sites recommandes par l'optimisation
-  couleur_riviere: "#9ecae1"        # bleu pale, riviere Richelieu
-  couleur_reseau_contour: "#8c8c8c" # contour gris du reseau pietonnier
-  couleur_reseau: "#ffffff"         # remplissage blanc du reseau pietonnier
-  couleur_zone: "#000000"           # trait noir de la zone tampon
-  icone_arret: "fa-bus"
-  icone_gare: "fa-train"
-  icones_services:                  # pictogrammes FontAwesome par type de service
-    epicerie: "fa-cart-shopping"
-    pharmacie: "fa-pills"
-    sante: "fa-suitcase-medical"
-    banque: "fa-building-columns"
-    poste: "fa-envelope"
-    ecole: "fa-graduation-cap"
-    bibliotheque: "fa-book"
-    communautaire: "fa-users"
+visualization:
+  color_stops: "#5a5a5a"            # gris, arrets d'autobus
+  color_stations: "#000000"         # noir, gares et lignes de train
+  color_services: "#9b6bc9"         # mauve pale, services essentiels existants (bulles)
+  color_new_sites: "#4a2382"        # mauve fonce, nouveaux services ajoutes (S1)
+  color_river: "#9ecae1"            # bleu pale, riviere Richelieu
+  color_network_casing: "#8c8c8c"   # contour gris du reseau pietonnier
+  color_network_fill: "#ffffff"     # remplissage blanc du reseau pietonnier
+  color_study_outline: "#000000"    # trait noir de la limite de la zone d'etude
+  color_municipal_limits: "#000000" # trait noir plus fin des limites municipales
+  # Couleurs des residences selon la cote qualitative (comme GMQ210).
+  quality_colors:
+    Excellent: "#1a9850"            # vert
+    "Tres bien": "#a6d96a"          # vert pale
+    Bien: "#fee08b"                 # jaune
+    Acceptable: "#fdae61"           # orange
+    Insuffisant: "#d73027"          # rouge
+  icon_stop: "fa-bus"
+  icon_station: "fa-train"
+  # Pictogrammes FontAwesome par type de service.
+  service_icons:
+    pharmacy: "fa-pills"
+    school: "fa-graduation-cap"
+    kindergarten: "fa-child"
+    bank: "fa-building-columns"
+    health: "fa-suitcase-medical"
+    dentist: "fa-tooth"
+    veterinary: "fa-paw"
+    supermarket: "fa-cart-shopping"
+    convenience: "fa-store"
+  # Libelles francais des types de services pour l'affichage.
+  service_labels:
+    pharmacy: "Pharmacie"
+    school: "Ecole"
+    kindergarten: "Garderie"
+    bank: "Banque"
+    health: "Sante"
+    dentist: "Dentiste"
+    veterinary: "Veterinaire"
+    supermarket: "Epicerie"
+    convenience: "Depanneur"
 
 # --- Chemins ---
-chemins:
+paths:
   data_raw: "data/raw"
   data_processed: "data/processed"
   outputs_maps: "outputs/maps"
@@ -166,31 +221,32 @@ chemins:
   audit_report: "outputs/tables/audit_report.csv"
   log_file: "logs/pipeline.log"     # journal du pipeline (ignore par Git)
   # Fichiers sources dans data_raw, telecharges manuellement (voir download_data.py)
-  fichiers:
-    limites_municipales: "decoupages_administratifs_QC/munic_s.shp"
-    aires_diffusion: "AD_recensement_2021_CAN/AD_2021.shp"
-    utilisation_sol:
+  manual_files:
+    municipal_limits: "decoupages_administratifs_QC/munic_s.shp"
+    dissemination_areas: "AD_recensement_2021_CAN/AD_2021.shp"
+    land_use:
       - "CMM_utilisation_sol_2022_VR/Beloeil_sol.shp"
       - "CMM_utilisation_sol_2022_VR/MSH_sol.shp"
       - "CMM_utilisation_sol_2022_VR/McMasterville_sol.shp"
       - "CMM_utilisation_sol_2022_VR/Otterburn_Park_sol.shp"
-    profil_recensement: "donnees_recensement_2021_QC/Francais_CSV_data_Quebec.csv"
+    census_profile: "donnees_recensement_2021_QC/Francais_CSV_data_Quebec.csv"
     gtfs: "google_transit_VR"
-    gares_train: "train_gares_exo.geojson"
-    lignes_train: "train_lignes_exo.geojson"
-  # Fichiers OSM dans data_raw, regeneres par download_data.py
-  fichiers_osm:
-    graphe_pieton: "osm/network_walk.graphml"
+    train_stations: "train_gares_exo.geojson"
+    train_lines: "train_lignes_exo.geojson"
+  # Couches OSM regenerees par download_data.py, ecrites dans data_processed.
+  osm_files:
+    walk_graph: "osm/network_walk.graphml"
     services: "osm/services.gpkg"
-    batiments: "osm/buildings.gpkg"
-    adresses: "osm/addresses.gpkg"
-    hydrographie: "osm/water.gpkg"
-  # Couches intermediaires ecrites dans data_processed (verifiables dans QGIS)
-  fichiers_processed:
+    buildings: "osm/buildings.gpkg"
+    addresses: "osm/addresses.gpkg"
+    water: "osm/water.gpkg"
+    commercial: "osm/commercial.gpkg"
+  # Couches intermediaires ecrites dans data_processed (verifiables dans QGIS).
+  processed_files:
     residences: "residences.gpkg"
     services: "services.gpkg"
-    arrets_bus: "arrets_bus.gpkg"
-    gares: "gares.gpkg"
-    aires_diffusion: "aires_diffusion.gpkg"
-    sites_candidats: "sites_candidats.gpkg"
-    profil_recensement: "profil_recensement_filtre.csv"
+    bus_stops: "arrets_bus.gpkg"
+    stations: "gares.gpkg"
+    dissemination_areas: "aires_diffusion.gpkg"
+    candidate_sites: "sites_candidats.gpkg"
+    census_profile: "profil_recensement_filtre.csv"

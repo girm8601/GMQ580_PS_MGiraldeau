@@ -1,9 +1,9 @@
 """Delimitation de la zone d'etude.
 
-La zone d'etude couvre les quatre municipalites riveraines contigues,
-Beloeil, Mont-Saint-Hilaire, McMasterville et Otterburn Park. La demande,
-les services, le reseau et le transport y sont tous mesures, sans zone
-tampon, decision documentee au README.
+La zone d'etude couvre les quatre municipalites riveraines contigues, Beloeil,
+Mont-Saint-Hilaire, McMasterville et Otterburn Park. La demande, les services,
+le reseau et le transport y sont tous mesures, sans zone tampon, decision
+documentee au README.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ def select_municipalities(municipalities_gdf, names, name_field):
 
 def build_zone(municipalities_gdf, config):
     """Construit la zone d'etude, un GeoDataFrame a une seule entite."""
-    name_field = config["zone_etude"]["champ_nom_municipalite"]
-    names = config["zone_etude"]["municipalites"]
+    name_field = config["study_area"]["municipality_name_field"]
+    names = config["study_area"]["municipalities"]
     selected = select_municipalities(municipalities_gdf, names, name_field)
     return selected.dissolve()[["geometry"]]
