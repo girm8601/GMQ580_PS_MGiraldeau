@@ -90,30 +90,30 @@ def audit_layer(gdf, layer_name, expected_crs, required_fields=None, zone=None):
     def add(rule_name, passed, detail):
         rows.append(
             {
-                "couche": layer_name,
-                "regle": rule_name,
-                "statut": "ok" if passed else "echec",
+                "layer": layer_name,
+                "rule": rule_name,
+                "status": "ok" if passed else "echec",
                 "detail": detail,
             }
         )
 
-    add("crs_attendu", *check_crs(gdf, expected_crs))
-    add("couche_non_vide", *check_not_empty(gdf))
-    add("geometries_valides", *check_valid_geometries(gdf))
-    add("geometries_non_vides", *check_empty_geometries(gdf))
-    add("absence_de_doublons", *check_duplicates(gdf))
+    add("expected_crs", *check_crs(gdf, expected_crs))
+    add("not_empty", *check_not_empty(gdf))
+    add("valid_geometries", *check_valid_geometries(gdf))
+    add("no_empty_geometries", *check_empty_geometries(gdf))
+    add("no_duplicates", *check_duplicates(gdf))
     if required_fields:
-        add("champs_requis", *check_required_fields(gdf, required_fields))
+        add("required_fields", *check_required_fields(gdf, required_fields))
     if zone is not None:
-        add("couverture_zone", *check_zone_overlap(gdf, zone))
+        add("zone_overlap", *check_zone_overlap(gdf, zone))
     return rows
 
 
 def run_audit(entries, report_path, logger):
     """Audite toutes les couches, ecrit le rapport CSV et bloque en cas d'echec.
 
-    Chaque entree est un dictionnaire avec les cles gdf, nom, crs et, au besoin,
-    champs_requis et zone. Le rapport complet est toujours ecrit, meme en cas
+    Chaque entree est un dictionnaire avec les cles gdf, name, crs et, au besoin,
+    required_fields et zone. Le rapport complet est toujours ecrit, meme en cas
     d'echec, pour que le probleme soit facile a retracer.
     """
     all_rows = []
@@ -121,9 +121,9 @@ def run_audit(entries, report_path, logger):
         all_rows.extend(
             audit_layer(
                 entry["gdf"],
-                entry["nom"],
+                entry["name"],
                 entry["crs"],
-                required_fields=entry.get("champs_requis"),
+                required_fields=entry.get("required_fields"),
                 zone=entry.get("zone"),
             )
         )
@@ -135,12 +135,12 @@ def run_audit(entries, report_path, logger):
     report.to_csv(report_path, index=False, encoding="utf-8")
 
     for row in all_rows:
-        if row["statut"] == "echec":
-            logger.error("Audit %s, %s, %s", row["couche"], row["regle"], row["detail"])
+        if row["status"] == "echec":
+            logger.error("Audit %s, %s, %s", row["layer"], row["rule"], row["detail"])
         else:
-            logger.info("Audit %s, %s, %s", row["couche"], row["regle"], row["detail"])
+            logger.info("Audit %s, %s, %s", row["layer"], row["rule"], row["detail"])
 
-    failure_count = int((report["statut"] == "echec").sum())
+    failure_count = int((report["status"] == "echec").sum())
     if failure_count > 0:
         raise AuditError(
             f"{failure_count} regle(s) d'audit en echec, voir le rapport {report_path}"

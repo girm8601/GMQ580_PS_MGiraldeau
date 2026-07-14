@@ -31,27 +31,27 @@ def make_gdf(crs="EPSG:2950"):
     )
 
 
-def test_crs_attendu_detecte():
+def test_expected_crs_detected():
     """Un CRS conforme passe et un CRS different echoue."""
     gdf = make_gdf()
     assert check_crs(gdf, "EPSG:2950")[0] is True
     assert check_crs(gdf, "EPSG:4326")[0] is False
 
 
-def test_crs_absent_detecte():
+def test_missing_crs_detected():
     """Une couche sans CRS declare doit echouer."""
     gdf = make_gdf().set_crs(None, allow_override=True)
     assert check_crs(gdf, "EPSG:2950")[0] is False
 
 
-def test_geometrie_invalide_detectee():
+def test_invalid_geometry_detected():
     """Un polygone papillon auto intersectant doit etre signale."""
     bowtie = Polygon([(0, 0), (1, 1), (1, 0), (0, 1)])
     gdf = gpd.GeoDataFrame({"id": [1]}, geometry=[bowtie], crs="EPSG:2950")
     assert check_valid_geometries(gdf)[0] is False
 
 
-def test_geometrie_vide_detectee():
+def test_empty_geometry_detected():
     """Une geometrie absente doit etre signalee."""
     gdf = gpd.GeoDataFrame(
         {"id": [1, 2]}, geometry=[Point(0, 0), None], crs="EPSG:2950"
@@ -59,7 +59,7 @@ def test_geometrie_vide_detectee():
     assert check_empty_geometries(gdf)[0] is False
 
 
-def test_doublons_detectes():
+def test_duplicates_detected():
     """Deux entites identiques doivent etre signalees."""
     gdf = gpd.GeoDataFrame(
         {"id": [1, 1]},
@@ -69,28 +69,28 @@ def test_doublons_detectes():
     assert check_duplicates(gdf)[0] is False
 
 
-def test_champs_requis_detectes():
+def test_required_fields_detected():
     """Un champ manquant doit etre signale."""
     gdf = make_gdf()
     assert check_required_fields(gdf, ["id"])[0] is True
     assert check_required_fields(gdf, ["absent"])[0] is False
 
 
-def test_audit_bloque_le_pipeline(tmp_path):
+def test_audit_blocks_pipeline(tmp_path):
     """Une couche au mauvais CRS doit bloquer l'audit avec une erreur claire."""
-    entries = [{"gdf": make_gdf(crs="EPSG:4326"), "nom": "test", "crs": "EPSG:2950"}]
+    entries = [{"gdf": make_gdf(crs="EPSG:4326"), "name": "test", "crs": "EPSG:2950"}]
     report_path = tmp_path / "audit_report.csv"
     with pytest.raises(AuditError):
         run_audit(entries, str(report_path), logger)
     assert report_path.exists()
 
 
-def test_audit_reussit_et_ecrit_le_rapport(tmp_path):
+def test_audit_passes_and_writes_report(tmp_path):
     """Une couche conforme doit passer l'audit et produire le rapport CSV."""
-    entries = [{"gdf": make_gdf(), "nom": "test", "crs": "EPSG:2950"}]
+    entries = [{"gdf": make_gdf(), "name": "test", "crs": "EPSG:2950"}]
     report_path = tmp_path / "audit_report.csv"
     report = run_audit(entries, str(report_path), logger)
-    assert (report["statut"] == "ok").all()
+    assert (report["status"] == "ok").all()
     assert report_path.exists()
 
 
@@ -100,11 +100,11 @@ def make_two_bank_graph():
     graph.add_edge(1, 2, length=100.0)
     graph.add_edge(3, 4, length=100.0)
     graph.add_edge(2, 3, length=300.0, bridge="yes")
-    banks = {1: "ouest", 2: "ouest", 3: "est", 4: "est"}
+    banks = {1: "west", 2: "west", 3: "east", 4: "east"}
     return graph, banks
 
 
-def test_detection_des_liens_traversants():
+def test_crossing_edges_detected():
     """Le seul lien entre les deux rives doit etre identifie."""
     graph, banks = make_two_bank_graph()
     crossings = find_crossing_edges(graph, banks)
@@ -112,7 +112,7 @@ def test_detection_des_liens_traversants():
     assert (2, 3) in [(u, v) for u, v, k in crossings]
 
 
-def test_retrait_des_liens_traversants_coupe_les_rives():
+def test_removing_crossing_edges_cuts_banks():
     """Sans les liens traversants, plus aucun chemin ne relie les deux rives."""
     graph, banks = make_two_bank_graph()
     crossings = find_crossing_edges(graph, banks)
