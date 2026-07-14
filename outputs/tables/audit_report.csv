@@ -1,52 +1,63 @@
-couche,regle,statut,detail
-limites_municipales,crs_attendu,ok,CRS conforme (EPSG:2950)
-limites_municipales,couche_non_vide,ok,4 entite(s)
-limites_municipales,geometries_valides,ok,0 geometrie(s) invalide(s)
-limites_municipales,geometries_non_vides,ok,0 geometrie(s) vide(s)
-limites_municipales,absence_de_doublons,ok,0 doublon(s)
-limites_municipales,champs_requis,ok,champs requis presents
-aires_diffusion,crs_attendu,ok,CRS conforme (EPSG:2950)
-aires_diffusion,couche_non_vide,ok,82 entite(s)
-aires_diffusion,geometries_valides,ok,0 geometrie(s) invalide(s)
-aires_diffusion,geometries_non_vides,ok,0 geometrie(s) vide(s)
-aires_diffusion,absence_de_doublons,ok,0 doublon(s)
-aires_diffusion,champs_requis,ok,champs requis presents
-aires_diffusion,couverture_zone,ok,82 entite(s) dans la zone d'etude
-utilisation_sol,crs_attendu,ok,CRS conforme (EPSG:2950)
-utilisation_sol,couche_non_vide,ok,4283 entite(s)
-utilisation_sol,geometries_valides,ok,0 geometrie(s) invalide(s)
-utilisation_sol,geometries_non_vides,ok,0 geometrie(s) vide(s)
-utilisation_sol,absence_de_doublons,ok,0 doublon(s)
-utilisation_sol,champs_requis,ok,champs requis presents
-utilisation_sol,couverture_zone,ok,4283 entite(s) dans la zone d'etude
-arrets_bus,crs_attendu,ok,CRS conforme (EPSG:2950)
-arrets_bus,couche_non_vide,ok,193 entite(s)
-arrets_bus,geometries_valides,ok,0 geometrie(s) invalide(s)
-arrets_bus,geometries_non_vides,ok,0 geometrie(s) vide(s)
-arrets_bus,absence_de_doublons,ok,0 doublon(s)
-arrets_bus,couverture_zone,ok,193 entite(s) dans la zone d'etude
-gares_train,crs_attendu,ok,CRS conforme (EPSG:2950)
-gares_train,couche_non_vide,ok,2 entite(s)
-gares_train,geometries_valides,ok,0 geometrie(s) invalide(s)
-gares_train,geometries_non_vides,ok,0 geometrie(s) vide(s)
-gares_train,absence_de_doublons,ok,0 doublon(s)
-gares_train,champs_requis,ok,champs requis presents
-lignes_train,crs_attendu,ok,CRS conforme (EPSG:2950)
-lignes_train,couche_non_vide,ok,1 entite(s)
-lignes_train,geometries_valides,ok,0 geometrie(s) invalide(s)
-lignes_train,geometries_non_vides,ok,0 geometrie(s) vide(s)
-lignes_train,absence_de_doublons,ok,0 doublon(s)
-lignes_train,champs_requis,ok,champs requis presents
-services_essentiels,crs_attendu,ok,CRS conforme (EPSG:2950)
-services_essentiels,couche_non_vide,ok,89 entite(s)
-services_essentiels,geometries_valides,ok,0 geometrie(s) invalide(s)
-services_essentiels,geometries_non_vides,ok,0 geometrie(s) vide(s)
-services_essentiels,absence_de_doublons,ok,0 doublon(s)
-services_essentiels,champs_requis,ok,champs requis presents
-services_essentiels,couverture_zone,ok,89 entite(s) dans la zone d'etude
-residences,crs_attendu,ok,CRS conforme (EPSG:2950)
-residences,couche_non_vide,ok,17897 entite(s)
-residences,geometries_valides,ok,0 geometrie(s) invalide(s)
-residences,geometries_non_vides,ok,0 geometrie(s) vide(s)
-residences,absence_de_doublons,ok,0 doublon(s)
-residences,couverture_zone,ok,17897 entite(s) dans la zone d'etude
+layer,rule,status,detail
+municipal_limits,expected_crs,ok,CRS conforme (EPSG:2950)
+municipal_limits,not_empty,ok,4 entite(s)
+municipal_limits,valid_geometries,ok,0 geometrie(s) invalide(s)
+municipal_limits,no_empty_geometries,ok,0 geometrie(s) vide(s)
+municipal_limits,no_duplicates,ok,0 doublon(s)
+municipal_limits,required_fields,ok,champs requis presents
+dissemination_areas,expected_crs,ok,CRS conforme (EPSG:2950)
+dissemination_areas,not_empty,ok,82 entite(s)
+dissemination_areas,valid_geometries,ok,0 geometrie(s) invalide(s)
+dissemination_areas,no_empty_geometries,ok,0 geometrie(s) vide(s)
+dissemination_areas,no_duplicates,ok,0 doublon(s)
+dissemination_areas,required_fields,ok,champs requis presents
+dissemination_areas,zone_overlap,ok,82 entite(s) dans la zone d'etude
+land_use,expected_crs,ok,CRS conforme (EPSG:2950)
+land_use,not_empty,ok,4283 entite(s)
+land_use,valid_geometries,ok,0 geometrie(s) invalide(s)
+land_use,no_empty_geometries,ok,0 geometrie(s) vide(s)
+land_use,no_duplicates,ok,0 doublon(s)
+land_use,required_fields,ok,champs requis presents
+land_use,zone_overlap,ok,4283 entite(s) dans la zone d'etude
+bus_stops,expected_crs,ok,CRS conforme (EPSG:2950)
+bus_stops,not_empty,ok,193 entite(s)
+bus_stops,valid_geometries,ok,0 geometrie(s) invalide(s)
+bus_stops,no_empty_geometries,ok,0 geometrie(s) vide(s)
+bus_stops,no_duplicates,ok,0 doublon(s)
+bus_stops,zone_overlap,ok,193 entite(s) dans la zone d'etude
+train_stations,expected_crs,ok,CRS conforme (EPSG:2950)
+train_stations,not_empty,ok,2 entite(s)
+train_stations,valid_geometries,ok,0 geometrie(s) invalide(s)
+train_stations,no_empty_geometries,ok,0 geometrie(s) vide(s)
+train_stations,no_duplicates,ok,0 doublon(s)
+train_stations,required_fields,ok,champs requis presents
+train_lines,expected_crs,ok,CRS conforme (EPSG:2950)
+train_lines,not_empty,ok,1 entite(s)
+train_lines,valid_geometries,ok,0 geometrie(s) invalide(s)
+train_lines,no_empty_geometries,ok,0 geometrie(s) vide(s)
+train_lines,no_duplicates,ok,0 doublon(s)
+train_lines,required_fields,ok,champs requis presents
+essential_services,expected_crs,ok,CRS conforme (EPSG:2950)
+essential_services,not_empty,ok,83 entite(s)
+essential_services,valid_geometries,ok,0 geometrie(s) invalide(s)
+essential_services,no_empty_geometries,ok,0 geometrie(s) vide(s)
+essential_services,no_duplicates,ok,0 doublon(s)
+essential_services,required_fields,ok,champs requis presents
+essential_services,zone_overlap,ok,83 entite(s) dans la zone d'etude
+residences,expected_crs,ok,CRS conforme (EPSG:2950)
+residences,not_empty,ok,17897 entite(s)
+residences,valid_geometries,ok,0 geometrie(s) invalide(s)
+residences,no_empty_geometries,ok,0 geometrie(s) vide(s)
+residences,no_duplicates,ok,0 doublon(s)
+residences,zone_overlap,ok,17897 entite(s) dans la zone d'etude
+water,expected_crs,ok,CRS conforme (EPSG:2950)
+water,not_empty,ok,26 entite(s)
+water,valid_geometries,ok,0 geometrie(s) invalide(s)
+water,no_empty_geometries,ok,0 geometrie(s) vide(s)
+water,no_duplicates,ok,0 doublon(s)
+commercial,expected_crs,ok,CRS conforme (EPSG:2950)
+commercial,not_empty,ok,56 entite(s)
+commercial,valid_geometries,ok,0 geometrie(s) invalide(s)
+commercial,no_empty_geometries,ok,0 geometrie(s) vide(s)
+commercial,no_duplicates,ok,0 doublon(s)
+commercial,zone_overlap,ok,56 entite(s) dans la zone d'etude

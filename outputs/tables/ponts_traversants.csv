@@ -1,4 +1,4 @@
-noeud_ouest_ou_depart,noeud_est_ou_arrivee,nom,type_voie,pont,longueur_m
+west_or_start_node,east_or_end_node,name,highway,bridge,length_m
 272789849,4198000409,Boulevard Sir-Wilfrid-Laurier,primary,yes,451.3
 4198000409,272789849,Boulevard Sir-Wilfrid-Laurier,primary,yes,451.3
 5311365021,11308660662,Boulevard Sir-Wilfrid-Laurier,footway,yes,527.5
