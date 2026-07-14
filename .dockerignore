@@ -1,0 +1,14 @@
+# Fichiers a ne pas copier dans l'image Docker, ils sont regeneres ou inutiles.
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.vscode/
+cache/
+logs/
+data/raw/*
+data/processed/*
+outputs/maps/*
+outputs/figures/*
+outputs/tables/*

@@ -2,22 +2,24 @@ name: gmq580_ps_mg
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
-  - osmnx
-  - networkx
-  - geopandas
-  - pandas
-  - shapely
-  - pyproj
-  - rtree
-  - mapclassify
-  - folium
-  - matplotlib
-  - spopt
-  - pyyaml
-  - pytest
-  - pytest-cov
-  - black
-  - ruff
-  - pre-commit
-  - pip
+  - python>=3.10
+  - osmnx>=1.9
+  - networkx>=3.1
+  - geopandas>=0.14
+  - pandas>=2.0
+  - numpy>=1.24
+  - shapely>=2.0
+  - pyproj>=3.5
+  - rtree>=1.0
+  - mapclassify>=2.6
+  - folium>=0.15
+  - matplotlib>=3.7
+  - spopt>=0.6
+  - pulp>=2.7
+  - pyyaml>=6.0
+  - pytest>=7.4
+  - pytest-cov>=4.1
+  - black>=24.0
+  - ruff>=0.6
+  - pre-commit>=3.5
+  - pip>=23.0
