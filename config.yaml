@@ -66,21 +66,21 @@ quality_bands:
 # important pese lourd, etre loin d'un service moins important pese peu.
 band_fractions:
   Excellent: 1.0
-  "Tres bien": 0.75
+  Tres bien: 0.7
   Bien: 0.5
   Acceptable: 0.3
   Insuffisant: 0.0
 # Paliers du pourcentage global d'accessibilite vers le libelle qualitatif d'une residence.
 overall_quality_ratios:             # [ratio minimal du pourcentage, libelle]
-  - [0.80, "Excellent"]
-  - [0.70, "Tres bien"]
-  - [0.50, "Bien"]
-  - [0.30, "Acceptable"]
+  - [0.75, "Excellent"]
+  - [0.65, "Tres bien"]
+  - [0.55, "Bien"]
+  - [0.35, "Acceptable"]
   - [0.00, "Insuffisant"]
 
 # --- Acces au transport collectif (reseau fixe) ---
 transit:
-  max_stop_distance_m: 500          # un arret compte comme accessible s'il est a <= 500 m a pied
+  max_stop_distance_m: 600          # un arret compte comme accessible s'il est a <= 600 m a pied
   fixed_route_types: [3]            # GTFS, 3 = autobus (reseau fixe)
   demand_route_types: [1501]        # GTFS, 1501 = sur reservation (a la demande, exclu)
   lat_field: "stop_lat"
@@ -91,12 +91,12 @@ transit:
 # --- Demande et vulnerabilite ---
 vulnerability:
   criterion: "65 ans et plus"
-  characteristic_id: 24             # ID_CARACTERISTIQUE du 65 ans et plus (compte)
-  total_population_id: 1            # ID_CARACTERISTIQUE de la population totale 2021
+  characteristic_id: 24                        # ID_CARACTERISTIQUE du 65 ans et plus (compte)
+  total_population_id: 1                       # ID_CARACTERISTIQUE de la population totale 2021
   value_column: "C1_CHIFFRE_TOTAL"
-  ad_join_field: "IDUGD"            # cle limites <-> profil
-  csv_encoding: "latin-1"           # encodage du profil StatCan (colonnes accentuees)
-  characteristic_column: "ID_CARACTÉRISTIQUE"   # nom exact de la colonne dans le CSV
+  ad_join_field: "IDUGD"                       # cle limites <-> profil
+  csv_encoding: "latin-1"                      # encodage du profil StatCan (colonnes accentuees)
+  characteristic_column: "ID_CARACTÉRISTIQUE"  # nom exact de la colonne dans le CSV
 
 # --- Services essentiels (etiquettes OSM) ---
 # Cles internes en anglais, un libelle francais est defini plus bas pour l'affichage.
@@ -129,72 +129,73 @@ essential_services:
 land_use:
   code_field: "UTIL_SOL"
   candidate_codes: [200]            # 200 = commerciale (CMM)
-  road_max_distance_m: 150          # distance maximale d'un site candidat au reseau
+  road_max_distance_m: 300          # distance maximale d'un site candidat au reseau
 
 # --- Optimisation (spopt, couverture maximale) ---
 optimization:
   n_services_min: 1
   n_services_max: 10
-  coverage_threshold_seniors_m: 800       # un aine est couvert si le service est a moins de 800 m
-  coverage_threshold_population_m: 1000    # la population generale tolere jusqu'a 1000 m
-  matrix_cutoff_m: 1000                    # portee maximale de la matrice de distances
-  site_spacing_m: 500                      # distance minimale entre deux sites ajoutes
-  map_steps_seniors: [2, 6, 10]            # etapes des cartes S1 pour les aines
-  map_steps_population: [10]               # etape de la carte S1 pour la population generale
-  weightings: ["seniors", "population_total"]   # analyse de sensibilite d'equite
+  coverage_threshold_seniors_m: 800            # un aine est couvert si le service est a moins de 800 m
+  coverage_threshold_population_m: 1000        # la population generale tolere jusqu'a 1000 m
+  matrix_cutoff_m: 1000                        # portee maximale de la matrice de distances
+  site_spacing_m: 300                          # distance minimale entre deux sites ajoutes
+  map_steps_seniors: [2, 6, 10]                # etapes des cartes S1 pour les aines
+  map_steps_population: [10]                   # etape de la carte S1 pour la population generale
+  weightings: ["seniors", "population_total"]  # analyse de sensibilite d'equite
 
 # --- Importance des services, deux jeux de poids ---
 # Un jeu pour les aines et un pour la population generale, car les deux populations ne
 # privilegient pas les memes services. Les poids guident la cote sur 100 par residence,
 # le choix du panier a ajouter (S1) et la couverture moyenne des cartes.
 importance_seniors:
-  pharmacy: 1.0
-  convenience: 0.9
-  supermarket: 0.8
-  health: 0.7
-  bank: 0.6
-  veterinary: 0.5
-  dentist: 0.4
-  school: 0.3
-  kindergarten: 0.2
+  supermarket: 1.0     # Le service le plus utile, on y va presque tous les jours
+  pharmacy: 1.0        # Essentiel pour les medicaments et le suivi des soins
+  health: 0.9          # Medecin et clinique de proximite, tres important en vieillissant
+  convenience: 0.8     # Depannage rapide a pied, tres pratique au quotidien
+  bank: 0.6            # Encore utile au comptoir pour ce groupe
+  dentist: 0.5         # Soins reguliers mais visites peu frequentes
+  veterinary: 0.3      # Utile seulement pour les proprietaires d'animaux
+  school: 0.1          # Peu utile au quotidien pour cette population
+  kindergarten: 0.1    # Presque jamais utile pour cette population
 importance_population_total:
-  convenience: 1.0
-  supermarket: 0.9
-  pharmacy: 0.8
-  school: 0.7
-  kindergarten: 0.6
-  health: 0.5
-  dentist: 0.4
-  veterinary: 0.3
-  bank: 0.2
+  supermarket: 1.0     # Le service le plus utile, on y va tres souvent
+  convenience: 0.8     # Pratique pour les achats de derniere minute
+  school: 0.8          # Critere important pour les familles
+  pharmacy: 0.7        # Important mais moins frequent que l'epicerie
+  kindergarten: 0.7    # Important pour les jeunes parents qui travaillent
+  health: 0.6          # Utile pour les suivis et urgences, mais moins souvent
+  dentist: 0.4         # Visites deux fois par an seulement
+  veterinary: 0.3      # Utile seulement pour les proprietaires d'animaux
+  bank: 0.2            # Presque tout se fait en ligne pour ce groupe
 
 # --- Visualisation (cartes interactives) ---
 visualization:
-  color_stops: "#5a5a5a"            # gris, arrets d'autobus
-  color_stations: "#000000"         # noir, gares et lignes de train
-  color_services: "#9b6bc9"         # mauve pale, services essentiels existants (bulles)
-  color_new_sites: "#4a2382"        # mauve fonce, nouveaux services ajoutes (S1)
-  color_river: "#9ecae1"            # bleu pale, riviere Richelieu
-  color_network_casing: "#8c8c8c"   # contour gris du reseau pietonnier
-  color_network_fill: "#ffffff"     # remplissage blanc du reseau pietonnier
-  color_study_outline: "#000000"    # trait noir de la limite de la zone d'etude
-  color_municipal_limits: "#000000" # trait noir plus fin des limites municipales
+  color_stops: "#gray"             # gris, arrets d'autobus
+  color_stations: "#black"         # noir, gares et lignes de train
+  color_services: "#darkpurple"    # mauve fonce, services essentiels existants
+  color_new_sites: "#cadetblue"    # bleu cadet, nouveaux services ajoutes (S1)
+  color_river: "#lightblue"        # bleu pale, riviere Richelieu
+  color_network_casing: "#gray"    # contour gris du reseau pietonnier
+  color_network_fill: "#white"     # remplissage blanc du reseau pietonnier
+  color_study_outline: "#black"    # trait noir de la limite de la zone d'etude
+  color_municipal_limits: "#black" # trait noir des limites municipales
   # Couleurs des residences selon la cote qualitative (comme GMQ210).
   quality_colors:
-    Excellent: "#1a9850"            # vert
-    "Tres bien": "#a6d96a"          # vert pale
-    Bien: "#fee08b"                 # jaune
-    Acceptable: "#fdae61"           # orange
-    Insuffisant: "#d73027"          # rouge
+    Excellent: "#green"            # vert
+    "Tres bien": "#lightgreen"     # vert pale
+    Bien: "#yellow"                # jaune
+    Acceptable: "#orange"          # orange
+    Insuffisant: "#red"            # rouge
+  # Pictogrammes FontAwesome pour les arrets et gares.
   icon_stop: "fa-bus"
   icon_station: "fa-train"
   # Pictogrammes FontAwesome par type de service.
   service_icons:
     pharmacy: "fa-pills"
-    school: "fa-graduation-cap"
-    kindergarten: "fa-child"
+    school: "fa-school"
+    kindergarten: "fa-baby-carriage"
     bank: "fa-building-columns"
-    health: "fa-suitcase-medical"
+    health: "fa-stethoscope"
     dentist: "fa-tooth"
     veterinary: "fa-paw"
     supermarket: "fa-cart-shopping"
@@ -241,10 +242,9 @@ paths:
     addresses: "osm/addresses.gpkg"
     water: "osm/water.gpkg"
     commercial: "osm/commercial.gpkg"
-  # Couches intermediaires ecrites dans data_processed (verifiables dans QGIS).
+  # Couches intermediaires ecrites dans data_processed.
   processed_files:
     residences: "residences.gpkg"
-    services: "services.gpkg"
     bus_stops: "arrets_bus.gpkg"
     stations: "gares.gpkg"
     dissemination_areas: "aires_diffusion.gpkg"

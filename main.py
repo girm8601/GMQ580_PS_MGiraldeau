@@ -309,7 +309,6 @@ def run_pipeline():
 
     # Couches intermediaires verifiables dans QGIS.
     save_processed(residences, config, "residences", logger)
-    save_processed(services, config, "services", logger)
     save_processed(layers["stops"], config, "bus_stops", logger)
     save_processed(layers["stations"], config, "stations", logger)
     save_processed(areas, config, "dissemination_areas", logger)
