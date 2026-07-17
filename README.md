@@ -62,6 +62,7 @@ flowchart TD
 
     subgraph P2["2. Analyse d'accessibilité (état actuel, S0)"]
         F["Réseau piétonnier, distances de marche<br/>(Dijkstra)"]
+        W["Importance des services<br/>deux jeux de poids, aînés et population générale"]
         G["Cote d'accessibilité sur 100<br/>par résidence"]
         I["Demande pondérée par la vulnérabilité<br/>(aînés répartis par aire de diffusion)"]
         H["Indicateur de couverture<br/>des résidents vulnérables"]
@@ -89,12 +90,14 @@ flowchart TD
     E -->|"networkx, Dijkstra"| F
     E -->|"pandas, geopandas"| I
     F --> G
+    W --> G
     F --> TA
     T --> TA
     G --> H
     I --> H
     H -->|"geopandas"| J
     J -->|"spopt, PySAL"| K
+    W --> K
     K --> L
     K --> M
     L --> M
@@ -108,6 +111,7 @@ flowchart TD
     style D fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style E fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style F fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    style W fill:#E6F1FB,stroke:#185FA5,color:#042C53
     style G fill:#E6F1FB,stroke:#185FA5,color:#042C53
     style TA fill:#E6F1FB,stroke:#185FA5,color:#042C53
     style H fill:#E6F1FB,stroke:#185FA5,color:#042C53
@@ -213,6 +217,7 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 | Vérification et contrôle qualité des données | ✅ Complété |
 | Validation de la franchissabilité des ponts dans le graphe | ✅ Complété |
 | Délimitation de la zone d'étude (quatre municipalités riveraines) | ✅ Complété |
+| Assignation des poids d'importance par type de service, aînés et population générale | ✅ Complété |
 | Cote d'accessibilité sur 100 par résidence, aînés et population générale | ✅ Complété |
 | Carte de vérification de l'accès à pied avec le réseau de transport fixe | ✅ Complété |
 | Pondération de la demande par la vulnérabilité (aînés répartis par AD) | ✅ Complété |
