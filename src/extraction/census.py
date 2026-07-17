@@ -55,7 +55,7 @@ def load_census_profile(config, logger=None):
         encoding=vulnerability["csv_encoding"],
         usecols=[join_field, id_field, value_field],
         dtype={join_field: str},
-        chunksize=500_000,
+        chunksize=vulnerability["csv_chunksize"],
         low_memory=False,
     )
     for chunk in reader:

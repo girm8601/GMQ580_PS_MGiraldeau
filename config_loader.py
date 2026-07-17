@@ -34,6 +34,10 @@ REQUIRED_KEYS = [
     "importance_seniors",
     "importance_population_total",
     "visualization",
+    "osm_columns",
+    "osm_extra_tags",
+    "logging",
+    "export",
     "paths",
 ]
 

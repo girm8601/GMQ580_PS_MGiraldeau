@@ -21,16 +21,16 @@ BANDS = [
 ]
 FRACTIONS = {
     "Excellent": 1.0,
-    "Tres bien": 0.75,
+    "Tres bien": 0.7,
     "Bien": 0.5,
     "Acceptable": 0.3,
     "Insuffisant": 0.0,
 }
 OVERALL = [
     [0.80, "Excellent"],
-    [0.70, "Tres bien"],
-    [0.50, "Bien"],
-    [0.30, "Acceptable"],
+    [0.60, "Tres bien"],
+    [0.40, "Bien"],
+    [0.20, "Acceptable"],
     [0.00, "Insuffisant"],
 ]
 

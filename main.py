@@ -39,7 +39,7 @@ from src.results.metrics import export_table
 from src.validation.audit import fix_invalid_geometries, run_audit
 from src.validation.bridges import barrier_analysis
 from src.visualization.charts import gain_curve_chart, s0_coverage_chart
-from src.visualization.maps import s0_map
+from src.visualization.maps import ordered_service_types, s0_map
 
 
 def save_processed(gdf, config, key, logger):
@@ -55,7 +55,7 @@ def save_processed(gdf, config, key, logger):
     logger.info("Couche intermediaire ecrite, %s, %d entite(s)", path, len(gdf))
 
 
-def walk_edges_for_display(graph):
+def walk_edges_for_display(graph, config):
     """Reseau pietonnier simplifie pour l'affichage des cartes."""
     import osmnx as ox
 
@@ -63,7 +63,8 @@ def walk_edges_for_display(graph):
     if {"u", "v"}.issubset(edges.columns):
         edges = edges[edges["u"] < edges["v"]]
     edges = edges[["geometry"]].copy()
-    edges["geometry"] = edges.geometry.simplify(2)
+    tolerance = config["visualization"]["map_network_simplify_m"]
+    edges["geometry"] = edges.geometry.simplify(tolerance)
     return edges
 
 
@@ -113,6 +114,8 @@ def audit_all_layers(layers, config, logger):
     name_field = config["study_area"]["municipality_name_field"]
     join_field = config["vulnerability"]["ad_join_field"]
     code_field = config["land_use"]["code_field"]
+    station_field = config["transit"]["station_name_field"]
+    line_field = config["transit"]["line_name_field"]
     entries = [
         {
             "gdf": layers["municipalities"],
@@ -139,13 +142,13 @@ def audit_all_layers(layers, config, logger):
             "gdf": layers["stations"],
             "name": "train_stations",
             "crs": crs,
-            "required_fields": ["nom_gare"],
+            "required_fields": [station_field],
         },
         {
             "gdf": layers["lines"],
             "name": "train_lines",
             "crs": crs,
-            "required_fields": ["nom_train"],
+            "required_fields": [line_field],
         },
         {
             "gdf": layers["services"],
@@ -173,7 +176,7 @@ def audit_all_layers(layers, config, logger):
 def run_pipeline():
     """Enchaine toutes les etapes du pipeline et ecrit les sorties."""
     config = load_config()
-    logger = setup_logger(config["paths"]["log_file"])
+    logger = setup_logger(config["paths"]["log_file"], config["logging"]["level"])
     logger.info("Demarrage du pipeline")
 
     layers = load_all_layers(config, logger)
@@ -185,8 +188,9 @@ def run_pipeline():
     )
     layers["services"] = services
 
+    map_files = config["paths"]["map_files"]
     service_types = list(config["essential_services"].keys())
-    network_edges = walk_edges_for_display(layers["graph"])
+    network_edges = walk_edges_for_display(layers["graph"], config)
     transit_by_type = transit_distances_by_type(
         distances_by_type, home_to_stop, stop_to_service, config
     )
@@ -202,21 +206,21 @@ def run_pipeline():
             distances_by_type,
             importance_seniors,
             bands_seniors,
-            "carte_s0_marche_aines.html",
+            map_files["s0_walk_seniors"],
             False,
         ),
         (
             distances_by_type,
             importance_population,
             bands_population,
-            "carte_s0_marche_population.html",
+            map_files["s0_walk_population"],
             False,
         ),
         (
             transit_by_type,
             importance_seniors,
             bands_seniors,
-            "carte_s0_marche_transport_aines.html",
+            map_files["s0_walk_transit_seniors"],
             True,
         ),
     ]
@@ -226,7 +230,7 @@ def run_pipeline():
             layers["study_zone"],
             layers["municipalities"],
             scored,
-            service_types,
+            ordered_service_types(service_types, importance),
             network_edges,
             services,
             layers["stops"] if with_transit else None,
@@ -235,17 +239,23 @@ def run_pipeline():
             layers["water"],
             config["visualization"],
             os.path.join(config["paths"]["outputs_maps"], file_name),
-            logger,
+            station_field=config["transit"]["station_name_field"],
+            line_field=config["transit"]["line_name_field"],
+            logger=logger,
         )
+
+    table_files = config["paths"]["table_files"]
+    figure_files = config["paths"]["figure_files"]
+    vc = config["visualization"]
 
     # Couverture S0 par type et par population.
     summary = coverage_summary(residences, distances_by_type, transit_by_type, config)
     export_table(
         summary,
-        os.path.join(config["paths"]["outputs_tables"], "s0_couverture.csv"),
+        os.path.join(config["paths"]["outputs_tables"], table_files["s0_coverage"]),
         logger,
     )
-    labels = config["visualization"]["service_labels"]
+    labels = vc["service_labels"]
     thr_seniors = config["optimization"]["coverage_threshold_seniors_m"]
     thr_population = config["optimization"]["coverage_threshold_population_m"]
     seniors_walk = summary[
@@ -261,17 +271,21 @@ def run_pipeline():
     s0_coverage_chart(
         seniors_walk,
         labels,
-        "Couverture S0 des aines par type de service",
-        os.path.join(config["paths"]["outputs_figures"], "s0_couverture_aines.png"),
+        vc["title_s0_coverage_seniors"],
+        os.path.join(
+            config["paths"]["outputs_figures"], figure_files["s0_coverage_seniors"]
+        ),
+        vc,
         logger,
     )
     s0_coverage_chart(
         population_walk,
         labels,
-        "Couverture S0 de la population generale par type de service",
+        vc["title_s0_coverage_population"],
         os.path.join(
-            config["paths"]["outputs_figures"], "s0_couverture_population.png"
+            config["paths"]["outputs_figures"], figure_files["s0_coverage_population"]
         ),
+        vc,
         logger,
     )
 
@@ -279,31 +293,35 @@ def run_pipeline():
     barrier = barrier_analysis(layers, residences, services, config, logger)
     export_table(
         barrier,
-        os.path.join(config["paths"]["outputs_tables"], "effet_barriere.csv"),
+        os.path.join(config["paths"]["outputs_tables"], table_files["barrier_effect"]),
         logger,
     )
 
-    # Optimisation S1 a pied, paniers mixtes, cartes et courbes de gain.
+    # Optimisation S1 a pied, assortiments mixtes, cartes et courbes de gain.
     candidates, gains, recommended = optimization_s1(
         layers, residences, distances_by_type, network_edges, config, logger
     )
     export_table(
         gains,
-        os.path.join(config["paths"]["outputs_tables"], "gains_s1.csv"),
+        os.path.join(config["paths"]["outputs_tables"], table_files["gains_s1"]),
         logger,
     )
     gain_curve_chart(
         gains,
-        os.path.join(config["paths"]["outputs_figures"], "courbe_gain.png"),
+        os.path.join(config["paths"]["outputs_figures"], figure_files["gain_curve"]),
+        vc,
         logger,
     )
     if recommended is not None and len(recommended) > 0:
+        precision = config["export"]["coordinate_precision"]
         recommended_export = recommended.copy()
-        recommended_export["x"] = recommended_export.geometry.x.round(1)
-        recommended_export["y"] = recommended_export.geometry.y.round(1)
+        recommended_export["x"] = recommended_export.geometry.x.round(precision)
+        recommended_export["y"] = recommended_export.geometry.y.round(precision)
         export_table(
             pd.DataFrame(recommended_export.drop(columns=["geometry", "icon"])),
-            os.path.join(config["paths"]["outputs_tables"], "sites_recommandes.csv"),
+            os.path.join(
+                config["paths"]["outputs_tables"], table_files["recommended_sites"]
+            ),
             logger,
         )
 

@@ -41,7 +41,7 @@ def filter_residential(buildings_gdf, buildings_config, residential_zones=None):
     """
     tag_field = buildings_config["field"]
     kept_types = list(buildings_config["kept_types"])
-    generic_value = "yes"
+    generic_value = buildings_config["generic_value"]
 
     values = buildings_gdf[tag_field]
     keep_mask = values.isin([t for t in kept_types if t != generic_value])

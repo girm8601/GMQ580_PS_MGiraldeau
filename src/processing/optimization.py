@@ -2,7 +2,7 @@
 
 Le modele choisit les sites candidats qui couvrent la plus grande demande encore
 non couverte sous le seuil de marche. La demande est ponderee par les aines, puis
-par la population totale pour l'analyse de sensibilite d'equite. Le panier mixte
+par la population totale pour l'analyse de sensibilite d'equite. L'assortiment mixte
 final est construit dans main.py, une etape retenant a chaque fois le type et le
 site qui rapportent le plus une fois ponderes par l'importance du service.
 """
@@ -14,14 +14,16 @@ import numpy as np
 from src.processing.graph import distances_from_sources
 
 
-def distance_matrix(graph, candidate_nodes, demand_nodes, threshold_m):
+def distance_matrix(
+    graph, candidate_nodes, demand_nodes, threshold_m, out_of_reach_multiplier=10.0
+):
     """Matrice des distances de marche entre demande et candidats.
 
     Un passage de Dijkstra par candidat, borne au seuil, remplit une colonne. Les
     paires hors de portee recoivent une valeur superieure au seuil pour que le
     modele les considere non couvertes.
     """
-    out_of_reach = float(threshold_m) * 10.0
+    out_of_reach = float(threshold_m) * out_of_reach_multiplier
     matrix = np.full((len(demand_nodes), len(candidate_nodes)), out_of_reach)
     demand_index = {}
     for i, node in enumerate(demand_nodes):

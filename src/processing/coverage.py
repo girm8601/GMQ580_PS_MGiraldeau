@@ -37,21 +37,29 @@ def coverage_summary(residences, distances_by_type, transit_by_type, config):
     """Part couverte par type, par population et par mode, aux seuils de couverture."""
     thr_seniors = config["optimization"]["coverage_threshold_seniors_m"]
     thr_population = config["optimization"]["coverage_threshold_population_m"]
+    ref_seniors = config["optimization"]["coverage_reference_seniors_m"]
+    ref_population = config["optimization"]["coverage_reference_population_m"]
     plans = [
-        ("seniors", "seniors_weight", "marche", distances_by_type, [400, thr_seniors]),
+        (
+            "seniors",
+            "seniors_weight",
+            "marche",
+            distances_by_type,
+            [ref_seniors, thr_seniors],
+        ),
         (
             "seniors",
             "seniors_weight",
             "marche_transport",
             transit_by_type,
-            [400, thr_seniors],
+            [ref_seniors, thr_seniors],
         ),
         (
             "population_total",
             "population_weight",
             "marche",
             distances_by_type,
-            [400, thr_population],
+            [ref_population, thr_population],
         ),
     ]
     rows = []

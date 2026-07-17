@@ -73,8 +73,9 @@ def load_train_stations(config, logger=None):
         config["paths"]["data_raw"], config["paths"]["manual_files"]["train_stations"]
     )
     stations = gpd.read_file(path)
+    station_field = config["transit"]["station_name_field"]
     stations = stations[
-        stations["nom_gare"].isin(config["transit"]["relevant_stations"])
+        stations[station_field].isin(config["transit"]["relevant_stations"])
     ].copy()
     if logger is not None:
         logger.info("Gares retenues, %d gares", len(stations))
@@ -88,7 +89,11 @@ def load_train_lines(config, logger=None):
     )
     lines = gpd.read_file(path)
     before = len(lines)
-    lines = lines.drop_duplicates(subset=["no_train", "nom_train"]).copy()
+    dedup_fields = [
+        config["transit"]["line_id_field"],
+        config["transit"]["line_name_field"],
+    ]
+    lines = lines.drop_duplicates(subset=dedup_fields).copy()
     if logger is not None and len(lines) < before:
         logger.info("Doublon de ligne retire, %d lignes conservees", len(lines))
     return reproject(lines, config["target_crs"])

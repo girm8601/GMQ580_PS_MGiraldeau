@@ -9,6 +9,7 @@ from src.extraction.buildings import build_address_label, filter_residential
 BUILDINGS_CONFIG = {
     "field": "building",
     "kept_types": ["house", "detached", "yes"],
+    "generic_value": "yes",
     "residential_land_use_codes": [100],
     "address_tag": "addr:housenumber",
     "housenumber_field": "addr:housenumber",

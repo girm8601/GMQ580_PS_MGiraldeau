@@ -1,7 +1,7 @@
 """Regeneration des couches OpenStreetMap du projet.
 
 Les couches OpenStreetMap, reseau pietonnier, services, batiments, adresses,
-plans d'eau et terrains en friche, se telechargent ici avec OSMnx et s'ecrivent
+plans d'eau et sites commerciaux, se telechargent ici avec OSMnx et s'ecrivent
 dans data/processed, car elles sont generees par le pipeline et non fournies
 telles quelles. Les autres sources, recensement, limites, utilisation du sol et
 transport exo, se telechargent manuellement depuis les liens du README, section
@@ -23,13 +23,6 @@ from src.extraction.reference_layers import load_municipalities
 from src.extraction.services import flatten_service_tags
 from src.logger import setup_logger
 from src.processing.study_area import build_zone
-
-# Colonnes conservees dans les fichiers OSM ecrits, le reste est du bruit.
-SERVICE_COLUMNS = ["amenity", "shop", "name", "geometry"]
-BUILDING_COLUMNS = ["building", "addr:housenumber", "addr:street", "name", "geometry"]
-ADDRESS_COLUMNS = ["addr:housenumber", "addr:street", "building", "geometry"]
-WATER_COLUMNS = ["natural", "water", "name", "geometry"]
-COMMERCIAL_COLUMNS = ["landuse", "name", "geometry"]
 
 
 def check_manual_sources(config, logger):
@@ -83,6 +76,8 @@ def download_osm(config, logger):
     import osmnx as ox
 
     polygon = extraction_polygon(config, logger)
+    columns = config["osm_columns"]
+    extra_tags = config["osm_extra_tags"]
 
     graph_path = _osm_path(config, "walk_graph")
     if os.path.exists(graph_path):
@@ -103,7 +98,9 @@ def download_osm(config, logger):
         logger.info("Telechargement des services essentiels OSM en cours")
         tags = flatten_service_tags(config["essential_services"])
         services = ox.features_from_polygon(polygon, tags=tags)
-        _write_features(services, SERVICE_COLUMNS, services_path, logger, "Services")
+        _write_features(
+            services, columns["services"], services_path, logger, "Services"
+        )
 
     buildings_path = _osm_path(config, "buildings")
     if os.path.exists(buildings_path):
@@ -114,7 +111,7 @@ def download_osm(config, logger):
             polygon, tags={config["residential_buildings"]["field"]: True}
         )
         _write_features(
-            buildings, BUILDING_COLUMNS, buildings_path, logger, "Batiments"
+            buildings, columns["buildings"], buildings_path, logger, "Batiments"
         )
 
     addresses_path = _osm_path(config, "addresses")
@@ -125,16 +122,18 @@ def download_osm(config, logger):
         addresses = ox.features_from_polygon(
             polygon, tags={config["residential_buildings"]["address_tag"]: True}
         )
-        _write_features(addresses, ADDRESS_COLUMNS, addresses_path, logger, "Adresses")
+        _write_features(
+            addresses, columns["addresses"], addresses_path, logger, "Adresses"
+        )
 
     water_path = _osm_path(config, "water")
     if os.path.exists(water_path):
         logger.info("Hydrographie deja presente, %s, telechargement saute", water_path)
     else:
         logger.info("Telechargement des plans d'eau OSM en cours")
-        water = ox.features_from_polygon(polygon, tags={"natural": "water"})
+        water = ox.features_from_polygon(polygon, tags=extra_tags["water"])
         water = water[water.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]
-        _write_features(water, WATER_COLUMNS, water_path, logger, "Plans d'eau")
+        _write_features(water, columns["water"], water_path, logger, "Plans d'eau")
 
     commercial_path = _osm_path(config, "commercial")
     if os.path.exists(commercial_path):
@@ -146,14 +145,14 @@ def download_osm(config, logger):
         logger.info("Telechargement des terrains commerciaux OSM en cours")
         try:
             commercial = ox.features_from_polygon(
-                polygon, tags={"landuse": "commercial"}
+                polygon, tags=extra_tags["commercial"]
             )
             commercial = commercial[
                 commercial.geometry.geom_type.isin(["Polygon", "MultiPolygon"])
             ]
             _write_features(
                 commercial,
-                COMMERCIAL_COLUMNS,
+                columns["commercial"],
                 commercial_path,
                 logger,
                 "Terrains commerciaux",
@@ -169,7 +168,7 @@ def download_osm(config, logger):
 def main():
     """Point d'entree de la regeneration des couches OSM."""
     config = load_config()
-    logger = setup_logger(config["paths"]["log_file"])
+    logger = setup_logger(config["paths"]["log_file"], config["logging"]["level"])
     logger.info("Regeneration des couches OpenStreetMap")
     if not check_manual_sources(config, logger):
         sys.exit(1)

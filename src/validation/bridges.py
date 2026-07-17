@@ -100,7 +100,10 @@ def barrier_analysis(layers, residences, services, config, logger):
     report = crossing_report(graph, crossings)
     export_table(
         report,
-        os.path.join(config["paths"]["outputs_tables"], "ponts_traversants.csv"),
+        os.path.join(
+            config["paths"]["outputs_tables"],
+            config["paths"]["table_files"]["crossing_bridges"],
+        ),
         logger,
     )
     logger.info(

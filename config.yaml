@@ -41,6 +41,7 @@ residential_buildings:
   kept_types: ["house", "detached", "apartments", "residential", "yes",
                "static_caravan", "semidetached_house", "terrace", "farm",
                "bungalow", "duplex"]
+  generic_value: "yes"               # valeur de kept_types soumise au croisement d'usage du sol
   residential_land_use_codes: [100, 101, 102, 103, 104, 112, 113, 114]
   address_tag: "addr:housenumber"   # noeuds d'adresse isoles, complement des batiments
   street_field: "addr:street"       # rue de l'adresse, pour l'etiquette affichee
@@ -72,10 +73,10 @@ band_fractions:
   Insuffisant: 0.0
 # Paliers du pourcentage global d'accessibilite vers le libelle qualitatif d'une residence.
 overall_quality_ratios:             # [ratio minimal du pourcentage, libelle]
-  - [0.75, "Excellent"]
-  - [0.65, "Tres bien"]
-  - [0.55, "Bien"]
-  - [0.35, "Acceptable"]
+  - [0.80, "Excellent"]
+  - [0.60, "Tres bien"]
+  - [0.40, "Bien"]
+  - [0.20, "Acceptable"]
   - [0.00, "Insuffisant"]
 
 # --- Acces au transport collectif (reseau fixe) ---
@@ -87,6 +88,9 @@ transit:
   lon_field: "stop_lon"
   relevant_stations: ["Gare McMasterville", "Gare Mont-Saint-Hilaire"]
   context_train_line: "Ligne Mont-Saint-Hilaire"
+  station_name_field: "nom_gare"    # nom de gare, fichier des gares exo
+  line_name_field: "nom_train"      # nom de ligne, fichier des lignes exo
+  line_id_field: "no_train"         # identifiant de ligne, cle de deduplication
 
 # --- Demande et vulnerabilite ---
 vulnerability:
@@ -97,6 +101,7 @@ vulnerability:
   ad_join_field: "IDUGD"                       # cle limites <-> profil
   csv_encoding: "latin-1"                      # encodage du profil StatCan (colonnes accentuees)
   characteristic_column: "ID_CARACTÉRISTIQUE"  # nom exact de la colonne dans le CSV
+  csv_chunksize: 500000                        # lignes par morceau, fichier StatCan de plusieurs Go
 
 # --- Services essentiels (etiquettes OSM) ---
 # Cles internes en anglais, un libelle francais est defini plus bas pour l'affichage.
@@ -142,11 +147,14 @@ optimization:
   map_steps_seniors: [2, 6, 10]                # etapes des cartes S1 pour les aines
   map_steps_population: [10]                   # etape de la carte S1 pour la population generale
   weightings: ["seniors", "population_total"]  # analyse de sensibilite d'equite
+  out_of_reach_multiplier: 10.0                # multiplie le seuil pour marquer une paire hors de portee
+  coverage_reference_seniors_m: 200            # seuil de reference du tableau S0 pour les aines (palier Excellent)
+  coverage_reference_population_m: 400         # seuil de reference du tableau S0 pour la population generale (palier Excellent)
 
 # --- Importance des services, deux jeux de poids ---
 # Un jeu pour les aines et un pour la population generale, car les deux populations ne
 # privilegient pas les memes services. Les poids guident la cote sur 100 par residence,
-# le choix du panier a ajouter (S1) et la couverture moyenne des cartes.
+# le choix de l'assortiment a ajouter (S1) et la couverture moyenne des cartes.
 importance_seniors:
   supermarket: 1.0     # Le service le plus utile, on y va presque tous les jours
   pharmacy: 1.0        # Essentiel pour les medicaments et le suivi des soins
@@ -170,31 +178,38 @@ importance_population_total:
 
 # --- Visualisation (cartes interactives) ---
 visualization:
-  color_stops: "#gray"             # gris, arrets d'autobus
-  color_stations: "#black"         # noir, gares et lignes de train
-  color_services: "#darkpurple"    # mauve fonce, services essentiels existants
-  color_new_sites: "#cadetblue"    # bleu cadet, nouveaux services ajoutes (S1)
-  color_river: "#lightblue"        # bleu pale, riviere Richelieu
-  color_network_casing: "#gray"    # contour gris du reseau pietonnier
-  color_network_fill: "#white"     # remplissage blanc du reseau pietonnier
-  color_study_outline: "#black"    # trait noir de la limite de la zone d'etude
-  color_municipal_limits: "#black" # trait noir des limites municipales
+  # Fond de carte.
+  map_zoom_start: 13
+  map_tiles: "cartodbpositron"
+  font_awesome_cdn: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  # Couleurs, en noms CSS.
+  color_stops: "gray"              # bulle grise, arrets d'autobus
+  color_stations: "black"          # bulle noire, gares et lignes de train
+  color_services: "purple"         # mauve fonce, repere des services essentiels existants
+  color_new_sites: "cadetblue"     # bleu cadet, reperes des nouveaux services ajoutes (S1)
+  color_river: "lightblue"         # bleu pale, riviere Richelieu
+  color_network_casing: "gray"     # contour gris du reseau pietonnier
+  color_network_fill: "white"      # remplissage blanc du reseau pietonnier
+  color_study_outline: "black"     # trait noir de la limite de la zone d'etude
+  color_municipal_limits: "black"  # trait noir des limites municipales
+  color_residence_outline: "black" # contour noir des points de residence
+  color_residence_default: "gray"  # gris, cote qualitative absente ou inconnue
   # Couleurs des residences selon la cote qualitative (comme GMQ210).
   quality_colors:
-    Excellent: "#green"            # vert
-    "Tres bien": "#lightgreen"     # vert pale
-    Bien: "#yellow"                # jaune
-    Acceptable: "#orange"          # orange
-    Insuffisant: "#red"            # rouge
-  # Pictogrammes FontAwesome pour les arrets et gares.
+    Excellent: "green"             # vert
+    "Tres bien": "lightgreen"      # vert pale
+    Bien: "yellow"                 # jaune
+    Acceptable: "orange"           # orange
+    Insuffisant: "red"             # rouge
+  # Pictogrammes FontAwesome pour les arrets et gares, en bulles.
   icon_stop: "fa-bus"
   icon_station: "fa-train"
-  # Pictogrammes FontAwesome par type de service.
+  # Pictogrammes FontAwesome par type de service, en reperes (marker).
   service_icons:
     pharmacy: "fa-pills"
-    school: "fa-school"
+    school: "fa-graduation-cap"
     kindergarten: "fa-baby-carriage"
-    bank: "fa-building-columns"
+    bank: "fa-sack-dollar"
     health: "fa-stethoscope"
     dentist: "fa-tooth"
     veterinary: "fa-paw"
@@ -211,6 +226,67 @@ visualization:
     veterinary: "Veterinaire"
     supermarket: "Epicerie"
     convenience: "Depanneur"
+  # Tailles des pictogrammes, en pixels, et ratio de l'icone dans sa bulle ou son repere.
+  size_stop_bubble: 20
+  size_station_bubble: 20
+  size_service_marker: 22
+  size_new_site_marker: 24
+  size_icon_ratio: 0.55
+  # Epaisseurs, opacites et pointilles des traits et des points.
+  style_study_outline_weight: 2.5
+  style_municipal_limits_weight: 2
+  style_river_weight: 1
+  style_river_fill_opacity: 0.8
+  style_network_casing_weight: 2
+  style_network_casing_opacity: 0.8
+  style_network_fill_weight: 0.8
+  style_network_fill_opacity: 1.0
+  style_train_line_weight: 2
+  style_train_line_dash: "6"
+  style_residence_radius: 4
+  style_residence_weight: 0.4
+  style_residence_fill_opacity: 0.8
+  map_network_simplify_m: 2          # tolerance de simplification du reseau affiche sur les cartes
+  # Graphiques statiques (matplotlib).
+  weighting_labels:
+    seniors: "Aines"
+    population_total: "Population generale"
+  chart_dpi: 150
+  chart_figsize_gain: [8, 5]
+  chart_figsize_bar: [8, 5]
+  chart_zoom_margin: 2.0             # marge verticale (%) resserree sur les valeurs de la courbe de gain
+  chart_marker: "o"
+  chart_grid_alpha: 0.3
+  color_chart_bar: "#185FA5"         # bleu, barres de couverture S0
+  label_chart_gain_xaxis: "Nombre de services ajoutes"
+  label_chart_gain_yaxis: "Demande couverte (%)"
+  label_chart_gain_legend: "Population"
+  label_chart_bar_xaxis: "Demande couverte a pied (%)"
+  title_chart_gain: "Gain de couverture selon le nombre de services ajoutes"
+  title_s0_coverage_seniors: "Couverture S0 des aines par type de service"
+  title_s0_coverage_population: "Couverture S0 de la population generale par type de service"
+
+# --- Colonnes et etiquettes OpenStreetMap conservees au telechargement ---
+osm_columns:
+  services: ["amenity", "shop", "name", "geometry"]
+  buildings: ["building", "addr:housenumber", "addr:street", "name", "geometry"]
+  addresses: ["addr:housenumber", "addr:street", "building", "geometry"]
+  water: ["natural", "water", "name", "geometry"]
+  commercial: ["landuse", "name", "geometry"]
+# Etiquettes OSM des couches telechargees hors de essential_services.
+osm_extra_tags:
+  water:
+    natural: "water"
+  commercial:
+    landuse: "commercial"
+
+# --- Journalisation ---
+logging:
+  level: "INFO"                      # DEBUG, INFO, WARNING, ERROR
+
+# --- Export ---
+export:
+  coordinate_precision: 1            # decimales des coordonnees x, y des sites recommandes exportes
 
 # --- Chemins ---
 paths:
@@ -250,3 +326,22 @@ paths:
     dissemination_areas: "aires_diffusion.gpkg"
     candidate_sites: "sites_candidats.gpkg"
     census_profile: "profil_recensement_filtre.csv"
+  # Cartes HTML ecrites dans outputs_maps.
+  map_files:
+    s0_walk_seniors: "carte_s0_marche_aines.html"
+    s0_walk_population: "carte_s0_marche_population.html"
+    s0_walk_transit_seniors: "carte_s0_marche_transport_aines.html"
+    s1_prefix_seniors: "carte_s1_aines"          # complete par _n<etape>.html
+    s1_prefix_population: "carte_s1_population"  # complete par _n<etape>.html
+  # Tableaux CSV ecrits dans outputs_tables.
+  table_files:
+    s0_coverage: "s0_couverture.csv"
+    barrier_effect: "effet_barriere.csv"
+    gains_s1: "gains_s1.csv"
+    recommended_sites: "sites_recommandes.csv"
+    crossing_bridges: "ponts_traversants.csv"
+  # Figures PNG ecrites dans outputs_figures.
+  figure_files:
+    s0_coverage_seniors: "s0_couverture_aines.png"
+    s0_coverage_population: "s0_couverture_population.png"
+    gain_curve: "courbe_gain.png"

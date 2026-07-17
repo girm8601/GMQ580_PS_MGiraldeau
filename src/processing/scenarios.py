@@ -1,7 +1,7 @@
-"""Scenarios S1, construction du panier de services et cartes optimisees.
+"""Scenarios S1, construction de l'assortiment de services et cartes optimisees.
 
 Ce module regroupe la logique des scenarios S1. Il choisit les sites candidats,
-construit un panier de services a ajouter pour chaque ponderation, recalcule la
+construit un assortiment de services a ajouter pour chaque ponderation, recalcule la
 cote des residences apres chaque ajout et produit les cartes aux paliers demandes.
 Le point d'entree du projet, main.py, ne fait qu'appeler optimization_s1.
 """
@@ -18,10 +18,10 @@ from src.processing.accessibility import scored_residences
 from src.processing.candidate_sites import build_candidate_sites
 from src.processing.graph import distances_from_sources, nearest_graph_nodes
 from src.processing.optimization import distance_matrix, solve_mclp
-from src.visualization.maps import s1_map
+from src.visualization.maps import ordered_service_types, s1_map
 
 
-def build_service_basket(
+def build_service_assortment(
     residences,
     distances_by_type,
     candidates,
@@ -33,7 +33,7 @@ def build_service_basket(
     config,
     logger,
 ):
-    """Construit le panier S1 mixte pour une ponderation donnee.
+    """Construit l'assortiment S1 mixte pour une ponderation donnee.
 
     A chaque etape, chaque type est optimise separement sur la demande encore non
     couverte, et l'ajout retenu est celui qui rapporte le plus une fois pondere par
@@ -43,7 +43,8 @@ def build_service_basket(
     service_types = list(config["essential_services"].keys())
     spacing = float(config["optimization"]["site_spacing_m"])
     n_max = config["optimization"]["n_services_max"]
-    out_of_reach = float(config["optimization"]["matrix_cutoff_m"]) * 10.0
+    multiplier = config["optimization"]["out_of_reach_multiplier"]
+    out_of_reach = float(config["optimization"]["matrix_cutoff_m"]) * multiplier
 
     residence_ids = list(residences["residence_id"])
     weights = residences[weight_column].to_numpy(dtype=float)
@@ -119,7 +120,7 @@ def build_service_basket(
             }
         )
         logger.info(
-            "Panier %s, etape %d, ajout %s au site %d",
+            "Assortiment %s, etape %d, ajout %s au site %d",
             weighting,
             step,
             best_type,
@@ -185,7 +186,7 @@ def render_s1_maps(
                 layers["study_zone"],
                 layers["municipalities"],
                 scored,
-                service_types,
+                ordered_service_types(service_types, importance),
                 network_edges,
                 layers["services"],
                 new_sites,
@@ -222,7 +223,7 @@ def filter_candidates_near_road(candidates, graph, config, logger):
 def optimization_s1(
     layers, residences, distances_by_type, network_edges, config, logger
 ):
-    """Optimisation S1, paniers mixtes pour les deux ponderations, cartes et gains."""
+    """Optimisation S1, assortiments mixtes pour les deux ponderations, cartes et gains."""
     graph = layers["graph"]
     cutoff = float(config["optimization"]["matrix_cutoff_m"])
 
@@ -235,11 +236,18 @@ def optimization_s1(
     logger.info("Sites candidats apres regroupement par noeud, %d", len(candidates))
 
     residence_nodes = list(residences["node"])
-    matrix = distance_matrix(graph, list(candidates["node"]), residence_nodes, cutoff)
+    matrix = distance_matrix(
+        graph,
+        list(candidates["node"]),
+        residence_nodes,
+        cutoff,
+        config["optimization"]["out_of_reach_multiplier"],
+    )
     logger.info(
         "Matrice de distances calculee, %d residences par %d sites", *matrix.shape
     )
 
+    map_files = config["paths"]["map_files"]
     plans = {
         "seniors": (
             "seniors_weight",
@@ -247,7 +255,7 @@ def optimization_s1(
             config["quality_bands"]["seniors"],
             config["optimization"]["coverage_threshold_seniors_m"],
             config["optimization"]["map_steps_seniors"],
-            "carte_s1_aines",
+            map_files["s1_prefix_seniors"],
         ),
         "population_total": (
             "population_weight",
@@ -255,16 +263,16 @@ def optimization_s1(
             config["quality_bands"]["population_total"],
             config["optimization"]["coverage_threshold_population_m"],
             config["optimization"]["map_steps_population"],
-            "carte_s1_population",
+            map_files["s1_prefix_population"],
         ),
     }
     gain_frames = []
-    recommended = None
+    site_frames = []
     for weighting in config["optimization"]["weightings"]:
         weight_column, importance, bands, threshold, map_steps, prefix = plans[
             weighting
         ]
-        gain_rows, selected = build_service_basket(
+        gain_rows, selected = build_service_assortment(
             residences,
             distances_by_type,
             candidates,
@@ -291,7 +299,14 @@ def optimization_s1(
             config,
             logger,
         )
-        if weighting == "seniors":
-            recommended = sites
+        if len(sites) > 0:
+            sites = sites.copy()
+            sites.insert(0, "population", weighting)
+            site_frames.append(sites)
     gains = pd.concat(gain_frames, ignore_index=True)
+    recommended = None
+    if site_frames:
+        recommended = gpd.GeoDataFrame(
+            pd.concat(site_frames, ignore_index=True), crs=candidates.crs
+        )
     return candidates, gains, recommended
