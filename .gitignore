@@ -1,11 +1,10 @@
-# Python
+# Caches Python et outils (regeneres a chaque execution de python, pytest ou ruff)
 __pycache__/
 *.pyc
-.venv/
-env/
-
-# Secrets (cles API, identifiants)
-.env
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
 
 # Donnees brutes et traitees (regenerees par download_data.py) : garder les dossiers, ignorer leur contenu
 data/raw/*
@@ -13,9 +12,7 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
-# Fichiers volumineux ou binaires (garder de petits echantillons au besoin)
-*.tif
-*.zip
+# Couches spatiales volumineuses (au cas ou une couche serait ecrite hors de data/)
 *.gpkg
 *.graphml
 
@@ -23,18 +20,12 @@ data/processed/*
 logs/
 *.log
 
-# Tests et couverture
-.pytest_cache/
-.coverage
-coverage.xml
-
-# Systeme et editeur
-.DS_Store
-.ipynb_checkpoints/
-.vscode/
-
 # Cartes interactives volumineuses (regenerees par main.py)
 outputs/maps/*.html
 
 # Cache des requetes OSMnx vers l'API Overpass (regenerable)
 cache/
+
+# Reglages personnels de l'editeur et fichiers systeme Windows
+.vscode/
+Thumbs.db
