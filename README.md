@@ -26,7 +26,7 @@ Les services se trouvent surtout au cœur des villes et non aux limites. Quelque
 | Source | Format | CRS | Accès |
 |--------|--------|-----|-------|
 | Réseau piétonnier (OpenStreetMap) | Graphe (GraphML) | EPSG:2950 (MTM 8) | Extrait via [OSMnx](https://osmnx.readthedocs.io/en/stable/), reprojeté depuis EPSG:4326 |
-| Points d'intérêt, services essentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquettes `amenity`, `shop`), reprojeté depuis EPSG:4326 |
+| Points d'intérêt, services essentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquettes `amenity`, `shop`, `healthcare`), reprojeté depuis EPSG:4326 |
 | Bâtiments résidentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquette `building`), reprojeté depuis EPSG:4326 |
 | Terrains commerciaux (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquette `landuse=commercial`), reprojeté depuis EPSG:4326 |
 | Population et aînés de 65 ans et plus par aire de diffusion | CSV tabulaire | Aucun (table jointe par code d'AD) | [Statistique Canada, Recensement 2021 (profil)](https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/download-telecharger.cfm?Lang=F) |
@@ -140,7 +140,7 @@ flowchart TD
 - **pytest** et **pytest-cov**, tests unitaires des fonctions critiques et mesure de couverture, exécutés en intégration continue.
 
 ## Installation et environnement
-Les paramètres du projet sont centralisés dans `config.yaml` et chargés par `config_loader.py`, qui valide la configuration avant tout accès aux données. Aucun paramètre n'est codé en dur dans les scripts. La configuration couvre le CRS cible EPSG:2950, la zone d'étude, les seuils de marche, les types de services, les pondérations et les chemins.
+Les paramètres du projet sont centralisés dans `config.yaml` et chargés par `config_loader.py`, qui valide la configuration avant tout accès aux données. Aucun paramètre n'est codé en dur dans les scripts. La configuration couvre les CRS, la zone d'étude, les étiquettes OSM, les seuils de marche, les pondérations, l'optimisation, l'apparence des cartes et les chemins.
 
 **Avec conda (recommandé)**
 ```bash
@@ -169,7 +169,7 @@ docker run --rm -v ${PWD}/data:/app/data -v ${PWD}/outputs:/app/outputs gmq580_p
 ```
 
 ## Tests et intégration continue
-Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial, comme la reprojection vers EPSG:2950, la validité des géométries, la cote d'accessibilité et la pondération de la demande. Les données de test sont de petits objets synthétiques (`tests/fixtures/`), jamais les données réelles du projet. Chaque module d'analyse est couvert par des tests sur données synthétiques.
+Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial, comme la reprojection vers EPSG:2950, la validité des géométries, la cote d'accessibilité et la pondération de la demande. Les données de test sont de petits objets synthétiques construits directement dans les tests, jamais les données réelles du projet. Chaque module d'analyse est couvert par des tests sur données synthétiques.
 
 **Lancer les tests localement**
 ```bash
@@ -202,7 +202,7 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 - Une courbe de gain qui compare la part couverte des aînés et de la population générale pour l'ajout de 1 à 10 services.
 - Une analyse de sensibilité d'équité qui compare la pondération des aînés et celle de la population totale.
 - Un chiffrage de l'effet de barrière de la rivière Richelieu.
-- Un rapport final écrit de 15 à 20 pages et une présentation orale de 10 à 15 minutes.
+- Un document écrit final de 10 pages maximum et une présentation orale de 10 minutes.
 
 ## État d'avancement
 
@@ -227,7 +227,7 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 | Production des résultats (gains, effet de barrière) | ✅ Complété |
 | Cartes interactives et graphiques | ✅ Complété |
 | Vérification d'ensemble du projet (résultats, cartes, cohérence du dépôt) | 🔄 En cours |
-| Rédaction du rapport et préparation de la présentation orale | ⏳ À faire |
+| Rédaction du rapport et préparation de la présentation orale | 🔄 En cours |
 
 ## Décisions méthodologiques
 - **Réorientation vers les services essentiels et reprise de GMQ210 (2026-06-23).** La zone était déjà saturée d'arrêts à la demande, le projet a donc évolué du transport vers l'accessibilité aux services essentiels. Cela permet aussi d'optimiser le type de service à ajouter. Avec l'accord de l'enseignant, le projet réutilise l'approche piétonne de GMQ210, à savoir OSM, Dijkstra et une cote sur 100 par résidence, et y ajoute la pondération par la vulnérabilité et l'optimisation.
@@ -240,10 +240,14 @@ Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du 
 - **Scénarios S1 en assortiment mixte sur la marche (2026-07-14).** L'optimisation vise l'accès à pied, celui qui mérite le plus d'être amélioré. L'assortiment va jusqu'à 10 ajouts. Chaque étape retient le type et le site qui rapportent le plus une fois pondérés par l'importance, et un site choisi ferme ses environs immédiats pour que chaque ajout desserve une zone différente. Chaque résidence a sa propre cote, les aires de diffusion servent seulement à placer les services là où les aînés sont plus nombreux. Des cartes sont produites aux paliers 2, 6 et 10 pour les aînés et au palier 10 pour la population générale.
 - **Bâtiments résidentiels et sites candidats (2026-07-14).** Une seule étiquette `building` ne suffit pas à capter toutes les résidences, la liste des valeurs retenues est donc centralisée dans `config.yaml` et complétée par les nœuds d'adresse isolés. La valeur générique `yes`, ambiguë, ne compte comme résidentielle que si le bâtiment tombe dans un polygone d'usage résidentiel de la CMM. Un nouveau service ne peut s'implanter que sur un vrai terrain commercial, les terrains de code 200 de la CMM sont donc croisés avec les polygones OpenStreetMap `landuse=commercial` et doivent être proches du réseau piétonnier.
 - **Poids d'importance fondés sur la littérature (2026-07-16).** Les deux jeux de poids, distincts selon le type de service et le groupe visé, ne reposent plus sur un jugement personnel mais sur des études sur l'importance des services de proximité.
+- **Étiquettes OSM élargies pour la complétude des services (2026-07-17).** Les étiquettes `healthcare` (santé, dentiste et pharmacie, types distincts conservés) et `amenity=childcare` (garderies) sont ajoutées à la configuration pour capter les établissements tagués autrement dans OSM. Les services encore manquants, dont des cliniques vétérinaires, seront ajoutés par contribution directe à OpenStreetMap puis re-téléchargement, ce qui reste entièrement reproductible.
 
 ## Difficultés rencontrées
 - **Complétude et validation d'OpenStreetMap.** La qualité des données en milieu périurbain peut varier, pour le réseau comme pour les services. La franchissabilité piétonne des ponts sur le Richelieu est validée par le module `bridges.py`, qui contrôle un chemin piéton continu d'une rive à l'autre, croisé au besoin avec l'imagerie aérienne. Aucune couche équivalente n'étant diffusée, les manques résiduels sont documentés comme une limite du projet.
 - **Données du transport à la demande indisponibles.** Les emplacements des arrêts du service exo à la demande ne sont pas diffusés publiquement. L'analyse se limite au réseau fixe, ce qui garde le traitement reproductible.
 - **Hétérogénéité des systèmes de coordonnées.** Les sources arrivent dans des CRS différents. Une fonction de reprojection unique vers EPSG:2950, couverte par un test unitaire, est appliquée à toutes les couches avant analyse pour éviter les jointures spatiales silencieusement fausses.
 - **Agrégation du recensement et effet de bordure.** Le nombre d'aînés d'une aire de diffusion est réparti sur les résidences de cette aire, tout le reste du calcul demeure entre points précis. Les services situés juste au-delà des limites ne sont pas comptés, mais les cartes montrent que les services se concentrent au cœur des villes, donc l'effet résiduel est jugé faible.
-- **Modélisation simplifiée et pondérations non validées.** Un seul critère de vulnérabilité est retenu, et à l'intérieur d'un même type chaque service est traité comme équivalent, sans égard à sa taille ni à sa capacité. Les poids d'importance ont été fixés selon notre propre jugement, sans consulter la communauté aînée ni la population générale. Une enquête permettrait de les valider, et la configuration centralisée rend cet ajustement immédiat.
+- **Modélisation simplifiée et pondérations non validées.** Un seul critère de vulnérabilité est retenu, et à l'intérieur d'un même type chaque service est traité comme équivalent, sans égard à sa taille ni à sa capacité. Les poids d'importance ont été fixés selon un jugement appuyé par la littérature sur les services de proximité, sans consulter la communauté aînée ni la population générale. Une enquête permettrait de les valider, et la configuration centralisée rend cet ajustement immédiat.
+
+## Références
+À compléter
