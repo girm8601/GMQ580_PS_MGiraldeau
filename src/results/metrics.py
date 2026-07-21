@@ -21,18 +21,6 @@ def export_table(df, path, logger=None):
         logger.info("Tableau exporte, %s, %d ligne(s)", path, len(df))
 
 
-def s0_summary_table(coverage_rows):
-    """Met en forme la couverture S0 par type de service, par mode et par seuil.
-
-    coverage_rows est une liste de dictionnaires avec le mode, le type de service,
-    le seuil en metres, la demande couverte et le taux.
-    """
-    table = pd.DataFrame(coverage_rows)
-    return table.sort_values(["mode", "threshold_m", "service_type"]).reset_index(
-        drop=True
-    )
-
-
 def barrier_effect_table(with_bridges, without_bridges):
     """Compare la couverture des aines avec et sans franchissement de la riviere.
 
@@ -47,7 +35,7 @@ def barrier_effect_table(with_bridges, without_bridges):
                 "service_type": service_type,
                 "covered_with_bridges": covered,
                 "covered_without_bridges": covered_cut,
-                "barrier_effect": covered - covered_cut,
+                "barrier_effect": round(covered - covered_cut, 1),
             }
         )
     return pd.DataFrame(rows).sort_values("barrier_effect", ascending=False)
