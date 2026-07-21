@@ -271,6 +271,7 @@ def run_pipeline():
     s0_coverage_chart(
         seniors_walk,
         labels,
+        importance_seniors,
         vc["title_s0_coverage_seniors"],
         os.path.join(
             config["paths"]["outputs_figures"], figure_files["s0_coverage_seniors"]
@@ -281,6 +282,7 @@ def run_pipeline():
     s0_coverage_chart(
         population_walk,
         labels,
+        importance_population,
         vc["title_s0_coverage_population"],
         os.path.join(
             config["paths"]["outputs_figures"], figure_files["s0_coverage_population"]
@@ -310,6 +312,7 @@ def run_pipeline():
         gains,
         os.path.join(config["paths"]["outputs_figures"], figure_files["gain_curve"]),
         vc,
+        config["optimization"]["weightings"],
         logger,
     )
     if recommended is not None and len(recommended) > 0:

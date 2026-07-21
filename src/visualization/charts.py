@@ -36,46 +36,60 @@ def _zoom_limits(values, margin):
     return low, high
 
 
-def gain_curve_chart(gains_df, path, visual_config, logger=None):
+def gain_curve_chart(gains_df, path, visual_config, weightings, logger=None):
     """Courbes de gain, part couverte selon le nombre de services ajoutes.
 
-    gains_df contient les colonnes n_services, weighting et covered_percent. Une
-    courbe est tracee par ponderation, aines et population generale. L'echelle
-    verticale est resserree sur les valeurs utilisees pour rendre le gain visible.
+    Un panneau par ponderation, cote a cote dans l'ordre de weightings. Chaque
+    panneau garde sa propre echelle verticale, car les paliers reposent sur des
+    seuils, des poids et des importances propres a la population, les hauteurs ne
+    se comparent donc pas d'un panneau a l'autre. gains_df contient les colonnes
+    n_services, weighting et covered_percent.
     """
     vc = visual_config
     weighting_labels = vc["weighting_labels"]
-    figure, axis = plt.subplots(figsize=tuple(vc["chart_figsize_gain"]))
-    all_values = []
-    for weighting, group in gains_df.groupby("weighting"):
-        group = group.sort_values("n_services")
-        all_values.extend(group["covered_percent"].tolist())
+    present = [w for w in weightings if (gains_df["weighting"] == w).any()]
+    width, height = vc["chart_figsize_gain"]
+    n_panels = max(len(present), 1)
+    figure, axes = plt.subplots(
+        1,
+        n_panels,
+        squeeze=False,
+        figsize=(width * n_panels, height),
+        layout="constrained",
+    )
+    for axis, weighting in zip(axes[0], present):
+        group = gains_df[gains_df["weighting"] == weighting].sort_values("n_services")
         axis.plot(
             group["n_services"],
             group["covered_percent"],
             marker=vc["chart_marker"],
-            label=weighting_labels.get(weighting, weighting),
         )
-    if all_values:
-        axis.set_ylim(*_zoom_limits(all_values, vc["chart_zoom_margin"]))
-    axis.set_xlabel(vc["label_chart_gain_xaxis"])
-    axis.set_ylabel(vc["label_chart_gain_yaxis"])
-    axis.set_title(vc["title_chart_gain"])
-    axis.legend(title=vc["label_chart_gain_legend"])
-    axis.grid(True, alpha=vc["chart_grid_alpha"])
+        axis.set_ylim(
+            *_zoom_limits(group["covered_percent"].tolist(), vc["chart_zoom_margin"])
+        )
+        axis.set_xlabel(vc["label_chart_gain_xaxis"])
+        axis.set_ylabel(vc["label_chart_gain_yaxis"])
+        axis.set_title(weighting_labels.get(weighting, weighting))
+        axis.grid(True, alpha=vc["chart_grid_alpha"])
+    figure.suptitle(vc["title_chart_gain"])
     _save(figure, path, vc["chart_dpi"], logger)
 
 
 def s0_coverage_chart(
-    summary_df, service_labels, title, path, visual_config, logger=None
+    summary_df, service_labels, importance, title, path, visual_config, logger=None
 ):
     """Diagramme en barres de la couverture S0 par type de service.
 
-    summary_df contient les colonnes service_type et covered_percent. Les noms de
-    services sont affiches en francais.
+    summary_df contient les colonnes service_type et covered_percent. Les services
+    sont ranges par importance pour la population visee, le plus important en haut,
+    comme l'ordre des infobulles des cartes. Les noms sont affiches en francais.
     """
     vc = visual_config
-    subset = summary_df.sort_values("covered_percent").copy()
+    subset = summary_df.sort_values(
+        "service_type",
+        key=lambda col: col.map(lambda t: importance.get(t, 0.0)),
+        kind="stable",
+    ).copy()
     subset["label"] = subset["service_type"].map(lambda t: service_labels.get(t, t))
     figure, axis = plt.subplots(figsize=tuple(vc["chart_figsize_bar"]))
     axis.barh(subset["label"], subset["covered_percent"], color=vc["color_chart_bar"])
