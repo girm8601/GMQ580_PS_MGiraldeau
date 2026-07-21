@@ -106,19 +106,25 @@ vulnerability:
 # --- Services essentiels (etiquettes OSM) ---
 # Cles internes en anglais, un libelle francais est defini plus bas pour l'affichage.
 # Seule la sante regroupe plusieurs etiquettes, tous les autres types sont distincts.
+# La cle healthcare complete amenity pour la sante, le dentiste et la pharmacie, car
+# plusieurs etablissements OSM ne portent que cette etiquette. childcare complete
+# kindergarten, etiquette usuelle des garderies au Quebec.
 essential_services:
   pharmacy:
     amenity: ["pharmacy"]
+    healthcare: ["pharmacy"]
   school:
     amenity: ["school"]
   kindergarten:
-    amenity: ["kindergarten"]
+    amenity: ["kindergarten", "childcare"]
   bank:
     amenity: ["bank"]
   health:
     amenity: ["hospital", "clinic", "doctors"]
+    healthcare: ["hospital", "clinic", "doctor"]
   dentist:
     amenity: ["dentist"]
+    healthcare: ["dentist"]
   veterinary:
     amenity: ["veterinary"]
   supermarket:
@@ -179,6 +185,7 @@ importance_population_total:
 # --- Visualisation (cartes interactives) ---
 visualization:
   # Fond de carte.
+  display_crs: "EPSG:4326"          # CRS d'affichage web des cartes folium (WGS84)
   map_zoom_start: 13
   map_tiles: "cartodbpositron"
   font_awesome_cdn: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -252,7 +259,7 @@ visualization:
     seniors: "Aines"
     population_total: "Population generale"
   chart_dpi: 150
-  chart_figsize_gain: [8, 5]
+  chart_figsize_gain: [5, 4.5]       # taille d'un panneau, largeur totale selon le nombre de panneaux
   chart_figsize_bar: [8, 5]
   chart_zoom_margin: 2.0             # marge verticale (%) resserree sur les valeurs de la courbe de gain
   chart_marker: "o"
@@ -260,7 +267,6 @@ visualization:
   color_chart_bar: "#185FA5"         # bleu, barres de couverture S0
   label_chart_gain_xaxis: "Nombre de services ajoutes"
   label_chart_gain_yaxis: "Demande couverte (%)"
-  label_chart_gain_legend: "Population"
   label_chart_bar_xaxis: "Demande couverte a pied (%)"
   title_chart_gain: "Gain de couverture selon le nombre de services ajoutes"
   title_s0_coverage_seniors: "Couverture S0 des aines par type de service"
@@ -268,7 +274,7 @@ visualization:
 
 # --- Colonnes et etiquettes OpenStreetMap conservees au telechargement ---
 osm_columns:
-  services: ["amenity", "shop", "name", "geometry"]
+  services: ["amenity", "shop", "healthcare", "name", "geometry"]
   buildings: ["building", "addr:housenumber", "addr:street", "name", "geometry"]
   addresses: ["addr:housenumber", "addr:street", "building", "geometry"]
   water: ["natural", "water", "name", "geometry"]

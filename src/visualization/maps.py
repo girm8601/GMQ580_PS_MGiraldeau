@@ -15,12 +15,10 @@ import os
 
 import folium
 
-DISPLAY_CRS = "EPSG:4326"
 
-
-def _to_display(gdf):
+def _to_display(gdf, display_crs):
     """Reprojette une couche vers le CRS d'affichage web."""
-    return gdf.to_crs(DISPLAY_CRS)
+    return gdf.to_crs(display_crs)
 
 
 def ordered_service_types(service_types, importance):
@@ -45,7 +43,7 @@ def _save(web_map, path, logger=None):
 
 def _base_map(zone_gdf, vc):
     """Cree la carte de base centree sur la zone d'etude, avec Font Awesome charge."""
-    zone = _to_display(zone_gdf)
+    zone = _to_display(zone_gdf, vc["display_crs"])
     center = zone.geometry.union_all().centroid
     web_map = folium.Map(
         location=[center.y, center.x],
@@ -58,10 +56,10 @@ def _base_map(zone_gdf, vc):
     return web_map
 
 
-def _add_study_outline(web_map, zone_gdf, color, weight):
+def _add_study_outline(web_map, zone_gdf, display_crs, color, weight):
     """Ajoute le trait noir qui delimite la zone d'etude."""
     folium.GeoJson(
-        _to_display(zone_gdf[["geometry"]]).to_json(),
+        _to_display(zone_gdf[["geometry"]], display_crs).to_json(),
         name="Limite de la zone d'etude",
         style_function=lambda feature: {
             "fillOpacity": 0.0,
@@ -71,12 +69,12 @@ def _add_study_outline(web_map, zone_gdf, color, weight):
     ).add_to(web_map)
 
 
-def _add_municipal_limits(web_map, municipalities_gdf, color, weight):
+def _add_municipal_limits(web_map, municipalities_gdf, display_crs, color, weight):
     """Ajoute les limites municipales en trait noir fin, sans nom de municipalite."""
     if municipalities_gdf is None or len(municipalities_gdf) == 0:
         return
     folium.GeoJson(
-        _to_display(municipalities_gdf[["geometry"]]).to_json(),
+        _to_display(municipalities_gdf[["geometry"]], display_crs).to_json(),
         name="Limites municipales",
         style_function=lambda feature: {
             "fillOpacity": 0.0,
@@ -86,12 +84,12 @@ def _add_municipal_limits(web_map, municipalities_gdf, color, weight):
     ).add_to(web_map)
 
 
-def _add_river(web_map, water_gdf, color, weight, fill_opacity):
+def _add_river(web_map, water_gdf, display_crs, color, weight, fill_opacity):
     """Ajoute la riviere au dessus du reseau mais sous les points."""
     if water_gdf is None or len(water_gdf) == 0:
         return
     folium.GeoJson(
-        _to_display(water_gdf[["geometry"]]).to_json(),
+        _to_display(water_gdf[["geometry"]], display_crs).to_json(),
         name="Riviere Richelieu",
         style_function=lambda feature: {
             "fillColor": color,
@@ -105,6 +103,7 @@ def _add_river(web_map, water_gdf, color, weight, fill_opacity):
 def _add_walk_network(
     web_map,
     edges_gdf,
+    display_crs,
     casing_color,
     fill_color,
     casing_weight,
@@ -115,7 +114,7 @@ def _add_walk_network(
     """Ajoute le reseau pietonnier, contour gris et remplissage blanc fin."""
     if edges_gdf is None or len(edges_gdf) == 0:
         return
-    edges_json = _to_display(edges_gdf[["geometry"]]).to_json()
+    edges_json = _to_display(edges_gdf[["geometry"]], display_crs).to_json()
     group = folium.FeatureGroup(name="Reseau pietonnier")
     folium.GeoJson(
         edges_json,
@@ -136,13 +135,15 @@ def _add_walk_network(
     group.add_to(web_map)
 
 
-def _add_train_lines(web_map, lines_gdf, color, weight, dash_array, name_field):
+def _add_train_lines(
+    web_map, lines_gdf, display_crs, color, weight, dash_array, name_field
+):
     """Ajoute les lignes de train en pointille noir, contexte cartographique."""
     if lines_gdf is None or len(lines_gdf) == 0:
         return
     lines_display = lines_gdf[[name_field, "geometry"]]
     folium.GeoJson(
-        _to_display(lines_display).to_json(),
+        _to_display(lines_display, display_crs).to_json(),
         name="Lignes de train",
         style_function=lambda feature: {
             "color": color,
@@ -189,13 +190,21 @@ def _pin(icon_class, color, size_px, icon_ratio):
 
 
 def _add_bubble_points(
-    web_map, gdf, group_name, icon_class, color, name_field, size_px, icon_ratio
+    web_map,
+    gdf,
+    display_crs,
+    group_name,
+    icon_class,
+    color,
+    name_field,
+    size_px,
+    icon_ratio,
 ):
     """Ajoute les arrets ou les gares en bulle coloree avec infobulle."""
     if gdf is None or len(gdf) == 0:
         return
     group = folium.FeatureGroup(name=group_name)
-    for _, row in _to_display(gdf).iterrows():
+    for _, row in _to_display(gdf, display_crs).iterrows():
         name = str(row.get(name_field, "") or "")
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
@@ -208,6 +217,7 @@ def _add_bubble_points(
 def _add_service_markers(
     web_map,
     gdf,
+    display_crs,
     group_name,
     icon_for_row,
     color,
@@ -224,7 +234,7 @@ def _add_service_markers(
     if gdf is None or len(gdf) == 0:
         return
     group = folium.FeatureGroup(name=group_name)
-    for _, row in _to_display(gdf).iterrows():
+    for _, row in _to_display(gdf, display_crs).iterrows():
         service_type = row.get("service_type")
         label = service_labels.get(service_type, service_type)
         if added:
@@ -260,7 +270,7 @@ def _add_residence_points(web_map, residences_gdf, service_types, visual_config)
     groups = {
         label: folium.FeatureGroup(name=f"Cote, {label}") for label in quality_colors
     }
-    residences_display = _to_display(residences_gdf)
+    residences_display = _to_display(residences_gdf, visual_config["display_crs"])
     for _, row in residences_display.iterrows():
         quality = row["quality_label"]
         color = quality_colors.get(quality, default_color)
@@ -299,6 +309,7 @@ def _add_base_layers(
     _add_river(
         web_map,
         water_gdf,
+        vc["display_crs"],
         vc["color_river"],
         vc["style_river_weight"],
         vc["style_river_fill_opacity"],
@@ -306,6 +317,7 @@ def _add_base_layers(
     _add_walk_network(
         web_map,
         network_edges,
+        vc["display_crs"],
         vc["color_network_casing"],
         vc["color_network_fill"],
         vc["style_network_casing_weight"],
@@ -316,11 +328,16 @@ def _add_base_layers(
     _add_municipal_limits(
         web_map,
         municipalities_gdf,
+        vc["display_crs"],
         vc["color_municipal_limits"],
         vc["style_municipal_limits_weight"],
     )
     _add_study_outline(
-        web_map, zone_gdf, vc["color_study_outline"], vc["style_study_outline_weight"]
+        web_map,
+        zone_gdf,
+        vc["display_crs"],
+        vc["color_study_outline"],
+        vc["style_study_outline_weight"],
     )
 
 
@@ -355,6 +372,7 @@ def s0_map(
     _add_train_lines(
         web_map,
         lines_gdf,
+        vc["display_crs"],
         vc["color_stations"],
         vc["style_train_line_weight"],
         vc["style_train_line_dash"],
@@ -369,6 +387,7 @@ def s0_map(
     _add_service_markers(
         web_map,
         services_gdf,
+        vc["display_crs"],
         "Services essentiels",
         lambda row: icons.get(row["service_type"], "fa-circle"),
         vc["color_services"],
@@ -379,6 +398,7 @@ def s0_map(
     _add_bubble_points(
         web_map,
         stops_gdf,
+        vc["display_crs"],
         "Arrets d'autobus",
         vc["icon_stop"],
         vc["color_stops"],
@@ -389,6 +409,7 @@ def s0_map(
     _add_bubble_points(
         web_map,
         stations_gdf,
+        vc["display_crs"],
         "Gares de train",
         vc["icon_station"],
         vc["color_stations"],
@@ -433,6 +454,7 @@ def s1_map(
     _add_service_markers(
         web_map,
         services_gdf,
+        vc["display_crs"],
         "Services essentiels existants",
         lambda row: icons.get(row["service_type"], "fa-circle"),
         vc["color_services"],
@@ -443,6 +465,7 @@ def s1_map(
     _add_service_markers(
         web_map,
         new_sites_gdf,
+        vc["display_crs"],
         "Services ajoutes (S1)",
         lambda row: icons.get(row["service_type"], "fa-circle"),
         vc["color_new_sites"],
