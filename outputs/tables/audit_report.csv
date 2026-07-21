@@ -38,12 +38,12 @@ train_lines,no_empty_geometries,ok,0 geometrie(s) vide(s)
 train_lines,no_duplicates,ok,0 doublon(s)
 train_lines,required_fields,ok,champs requis presents
 essential_services,expected_crs,ok,CRS conforme (EPSG:2950)
-essential_services,not_empty,ok,83 entite(s)
+essential_services,not_empty,ok,89 entite(s)
 essential_services,valid_geometries,ok,0 geometrie(s) invalide(s)
 essential_services,no_empty_geometries,ok,0 geometrie(s) vide(s)
 essential_services,no_duplicates,ok,0 doublon(s)
 essential_services,required_fields,ok,champs requis presents
-essential_services,zone_overlap,ok,83 entite(s) dans la zone d'etude
+essential_services,zone_overlap,ok,89 entite(s) dans la zone d'etude
 residences,expected_crs,ok,CRS conforme (EPSG:2950)
 residences,not_empty,ok,17897 entite(s)
 residences,valid_geometries,ok,0 geometrie(s) invalide(s)
