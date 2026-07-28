@@ -1,5 +1,10 @@
 # Hooks executes automatiquement avant chaque commit (pre-commit install).
-# La qualite du code ne se revise pas a la fin : black et ruff tournent des le debut.
+# La qualite du code ne se revise pas a la fin, black et ruff tournent des le debut.
+
+# Le dossier outputs contient des fichiers generes par le pipeline, cartes HTML, figures,
+# tableaux et rapport PDF. Les hooks de mise en forme ne doivent pas les reecrire, sinon
+# le fichier commite ne correspond plus a ce que main.py produit.
+exclude: '^outputs/'
 
 repos:
   - repo: https://github.com/psf/black
