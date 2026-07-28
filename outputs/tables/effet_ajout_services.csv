@@ -1,0 +1,11 @@
+group,n_services,added_type,site_id,latitude,longitude,threshold_m,covered_percent
+seniors,1,pharmacy,100,45.563015,-73.224437,800.0,20.9
+seniors,2,supermarket,44,45.571316,-73.203202,800.0,21.8
+seniors,3,health,95,45.551334,-73.216458,800.0,22.6
+seniors,4,pharmacy,46,45.573659,-73.200117,800.0,23.3
+seniors,5,health,7,45.562611,-73.192223,800.0,24.0
+rest,1,supermarket,56,45.545198,-73.237003,1000.0,29.7
+rest,2,supermarket,100,45.563015,-73.224437,1000.0,30.7
+rest,3,supermarket,46,45.573659,-73.200117,1000.0,31.4
+rest,4,convenience,58,45.54624,-73.232075,1000.0,32.1
+rest,5,supermarket,0,45.539825,-73.1896,1000.0,32.8

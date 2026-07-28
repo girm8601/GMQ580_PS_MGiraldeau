@@ -12,13 +12,6 @@ dissemination_areas,no_empty_geometries,ok,0 geometrie(s) vide(s)
 dissemination_areas,no_duplicates,ok,0 doublon(s)
 dissemination_areas,required_fields,ok,champs requis presents
 dissemination_areas,zone_overlap,ok,82 entite(s) dans la zone d'etude
-land_use,expected_crs,ok,CRS conforme (EPSG:2950)
-land_use,not_empty,ok,4283 entite(s)
-land_use,valid_geometries,ok,0 geometrie(s) invalide(s)
-land_use,no_empty_geometries,ok,0 geometrie(s) vide(s)
-land_use,no_duplicates,ok,0 doublon(s)
-land_use,required_fields,ok,champs requis presents
-land_use,zone_overlap,ok,4283 entite(s) dans la zone d'etude
 bus_stops,expected_crs,ok,CRS conforme (EPSG:2950)
 bus_stops,not_empty,ok,193 entite(s)
 bus_stops,valid_geometries,ok,0 geometrie(s) invalide(s)
@@ -45,19 +38,31 @@ essential_services,no_duplicates,ok,0 doublon(s)
 essential_services,required_fields,ok,champs requis presents
 essential_services,zone_overlap,ok,89 entite(s) dans la zone d'etude
 residences,expected_crs,ok,CRS conforme (EPSG:2950)
-residences,not_empty,ok,17897 entite(s)
+residences,not_empty,ok,17594 entite(s)
 residences,valid_geometries,ok,0 geometrie(s) invalide(s)
 residences,no_empty_geometries,ok,0 geometrie(s) vide(s)
 residences,no_duplicates,ok,0 doublon(s)
-residences,zone_overlap,ok,17897 entite(s) dans la zone d'etude
+residences,zone_overlap,ok,17594 entite(s) dans la zone d'etude
 water,expected_crs,ok,CRS conforme (EPSG:2950)
 water,not_empty,ok,26 entite(s)
 water,valid_geometries,ok,0 geometrie(s) invalide(s)
 water,no_empty_geometries,ok,0 geometrie(s) vide(s)
 water,no_duplicates,ok,0 doublon(s)
 commercial,expected_crs,ok,CRS conforme (EPSG:2950)
-commercial,not_empty,ok,56 entite(s)
+commercial,not_empty,ok,114 entite(s)
 commercial,valid_geometries,ok,0 geometrie(s) invalide(s)
 commercial,no_empty_geometries,ok,0 geometrie(s) vide(s)
 commercial,no_duplicates,ok,0 doublon(s)
-commercial,zone_overlap,ok,56 entite(s) dans la zone d'etude
+commercial,zone_overlap,ok,114 entite(s) dans la zone d'etude
+development,expected_crs,ok,CRS conforme (EPSG:2950)
+development,not_empty,ok,10 entite(s)
+development,valid_geometries,ok,0 geometrie(s) invalide(s)
+development,no_empty_geometries,ok,0 geometrie(s) vide(s)
+development,no_duplicates,ok,0 doublon(s)
+development,zone_overlap,ok,10 entite(s) dans la zone d'etude
+residential,expected_crs,ok,CRS conforme (EPSG:2950)
+residential,not_empty,ok,325 entite(s)
+residential,valid_geometries,ok,0 geometrie(s) invalide(s)
+residential,no_empty_geometries,ok,0 geometrie(s) vide(s)
+residential,no_duplicates,ok,0 doublon(s)
+residential,zone_overlap,ok,325 entite(s) dans la zone d'etude
