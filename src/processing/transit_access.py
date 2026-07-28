@@ -2,11 +2,11 @@
 
 Un service peut etre atteint par le transport en marchant de la residence vers un
 arret, en prenant l'autobus, puis en marchant de l'arret d'arrivee vers le service.
-Les deux marches doivent rester courtes, sous le seuil de la configuration. La
-distance retenue est la plus courte entre la marche directe et cet acces par le
-transport. Le reseau fixe local est traite comme un tout connecte, sans horaires,
-conformement a la decision documentee dans le README. Cette dimension sert seulement
-a la carte S0 de verification.
+Les deux marches doivent rester courtes, sous le seuil propre au groupe. La distance
+retenue est la plus courte entre la marche directe et cet acces par le transport. Le
+reseau fixe local est traite comme un tout connecte, sans horaires, conformement a la
+decision documentee dans le README. Cette dimension sert au levier transport et a la
+comparaison d'equite.
 """
 
 from __future__ import annotations
@@ -39,14 +39,16 @@ def effective_transit_distance(
     return min(walk_distance_m, transit_total)
 
 
-def transit_distances_by_type(distances_by_type, home_to_stop, stop_to_service, config):
-    """Distances effectives par type sur la carte de verification transport.
+def transit_distances_by_type(
+    distances_by_type, home_to_stop, stop_to_service, max_stop
+):
+    """Distances effectives par type en tenant compte du transport, pour un seuil donne.
 
-    Pour chaque residence, un service peut etre atteint en marchant vers un arret,
-    en prenant l'autobus, puis en marchant de l'arret vers le service. La distance
-    retenue est la plus courte entre cette chaine et la marche directe.
+    Pour chaque residence, un service peut etre atteint en marchant vers un arret, en
+    prenant l'autobus, puis en marchant de l'arret vers le service. La distance retenue est
+    la plus courte entre cette chaine et la marche directe. max_stop est la marche maximale
+    vers un arret, propre au groupe, 800 m pour les aines et 1000 m pour le reste.
     """
-    max_stop = config["transit"]["max_stop_distance_m"]
     effective = {}
     for service_type, distances in distances_by_type.items():
         service_stop = stop_to_service.get(service_type)

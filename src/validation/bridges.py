@@ -81,13 +81,28 @@ def remove_crossing_edges(graph, crossings):
     return cut_graph
 
 
+def _covered_weight(
+    graph, type_nodes, threshold, node_by_residence, weight_by_residence
+):
+    """Poids de demande couvert par un type de service sous le seuil, sur un graphe donne."""
+    reached = distances_from_sources(graph, type_nodes, cutoff=threshold)
+    return sum(
+        weight_by_residence[rid]
+        for rid, node in node_by_residence.items()
+        if reached.get(node) is not None
+    )
+
+
 def barrier_analysis(layers, residences, services, config, logger):
-    """Chiffre l'effet de barriere en coupant les liens qui traversent la riviere."""
+    """Chiffre l'effet de barriere par groupe et par service en coupant les liens du pont.
+
+    Pour chaque groupe a son seuil, aines a 800 m et reste a 1000 m, on compte la demande
+    couverte par type de service avec les ponts puis sans les ponts. L'ecart est l'effet de
+    barriere, qui reste faible.
+    """
     import osmnx as ox
 
     graph = layers["graph"]
-    threshold = config["optimization"]["coverage_threshold_seniors_m"]
-
     nodes_gdf = ox.graph_to_gdfs(graph, edges=False)
     banks = classify_banks(
         nodes_gdf,
@@ -112,25 +127,39 @@ def barrier_analysis(layers, residences, services, config, logger):
 
     cut_graph = remove_crossing_edges(graph, crossings)
     node_by_residence = dict(zip(residences["residence_id"], residences["node"]))
-    seniors_by_residence = dict(
-        zip(residences["residence_id"], residences["seniors_weight"])
-    )
-    with_bridges = {}
-    without_bridges = {}
-    for scenario, active_graph, target in (
-        ("avec", graph, with_bridges),
-        ("sans", cut_graph, without_bridges),
-    ):
+    groups = [
+        (
+            "seniors",
+            "seniors_weight",
+            config["optimization"]["coverage_threshold_seniors_m"],
+        ),
+        ("rest", "rest_weight", config["optimization"]["coverage_threshold_rest_m"]),
+    ]
+    rows = []
+    for group_label, weight_column, threshold in groups:
+        weight_by_residence = dict(
+            zip(residences["residence_id"], residences[weight_column])
+        )
+        group_total = round(float(sum(weight_by_residence.values())), 1)
         for service_type in config["essential_services"]:
-            type_nodes = services.loc[services["service_type"] == service_type, "node"]
-            reached = distances_from_sources(
-                active_graph, list(type_nodes), cutoff=threshold
+            type_nodes = list(
+                services.loc[services["service_type"] == service_type, "node"]
             )
-            covered_seniors = sum(
-                seniors_by_residence[rid]
-                for rid, node in node_by_residence.items()
-                if reached.get(node) is not None
+            covered_with = _covered_weight(
+                graph, type_nodes, threshold, node_by_residence, weight_by_residence
             )
-            target[service_type] = round(float(covered_seniors), 1)
-        logger.info("Scenario %s ponts evalue", scenario)
-    return barrier_effect_table(with_bridges, without_bridges)
+            covered_without = _covered_weight(
+                cut_graph, type_nodes, threshold, node_by_residence, weight_by_residence
+            )
+            rows.append(
+                {
+                    "group": group_label,
+                    "service_type": service_type,
+                    "threshold_m": threshold,
+                    "covered_with_bridges_persons": round(float(covered_with), 1),
+                    "covered_without_bridges_persons": round(float(covered_without), 1),
+                    "group_total_persons": group_total,
+                }
+            )
+        logger.info("Effet de barriere evalue pour %s", group_label)
+    return barrier_effect_table(rows)

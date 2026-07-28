@@ -1,10 +1,9 @@
 """Demande ponderee par la vulnerabilite, les aines par aire de diffusion.
 
 Le profil du recensement fournit la population totale et les 65 ans et plus par
-aire de diffusion. La demande retenue pour l'analyse est le compte des aines, la
-population totale sert a l'analyse de sensibilite d'equite. Le compte d'aines
-d'une aire est ensuite reparti egalement sur les residences de cette aire, ce qui
-donne un poids d'aines a chaque residence.
+aire de diffusion. Le compte d'aines et le compte du reste, population totale moins
+aines, sont repartis egalement sur les residences de chaque aire. La population totale
+sert seulement a l'effet de barriere.
 """
 
 from __future__ import annotations
@@ -67,10 +66,11 @@ def weight_demand(ad_gdf, population_df, join_field, logger=None):
 def distribute_demand_to_residences(residences, areas, join_field):
     """Repartit la population de chaque aire sur ses residences.
 
-    Le compte d'aines et la population totale d'une aire sont divises par le
-    nombre de residences de cette aire, ce qui donne a chaque residence un poids
-    d'aines et un poids de population. Les residences sans aire recoivent un poids
-    nul. Retourne le GeoDataFrame des residences avec les colonnes de poids.
+    Le compte d'aines et la population totale d'une aire sont divises par le nombre de
+    residences de cette aire. Chaque residence recoit un poids d'aines, un poids de
+    population totale et un poids du reste, la population moins les aines. Les residences
+    sans aire recoivent un poids nul. Retourne le GeoDataFrame des residences avec les
+    colonnes de poids.
     """
     residences = residences.copy()
     counts = residences.groupby(join_field)["residence_id"].transform("count")
@@ -80,6 +80,9 @@ def distribute_demand_to_residences(residences, areas, join_field):
     )
     residences["seniors_weight"] = (seniors_by_area / counts).fillna(0.0)
     residences["population_weight"] = (population_by_area / counts).fillna(0.0)
+    residences["rest_weight"] = (
+        residences["population_weight"] - residences["seniors_weight"]
+    ).clip(lower=0.0)
     return residences
 
 

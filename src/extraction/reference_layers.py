@@ -1,9 +1,8 @@
-"""Couches de reference, limites municipales, aires de diffusion et sol.
+"""Couches de reference, limites municipales, aires de diffusion et usage du sol OSM.
 
-Chaque fonction lit une source brute de data_raw, la ramene au CRS cible et
-retourne un GeoDataFrame pret pour l'audit puis l'analyse. Les couches OSM
-regenerees par download_data.py sont lues dans data_processed. Les chemins et
-les noms de champs viennent tous de config.yaml.
+Chaque fonction lit une source de data_raw ou une couche OSM de data_processed, la
+ramene au CRS cible et retourne un GeoDataFrame pret pour l'audit puis l'analyse. Les
+chemins et les noms de champs viennent tous de config.yaml.
 """
 
 from __future__ import annotations
@@ -11,7 +10,6 @@ from __future__ import annotations
 import os
 
 import geopandas as gpd
-import pandas as pd
 
 from src.io import reproject
 
@@ -57,22 +55,14 @@ def load_dissemination_areas(config, study_zone):
     return areas[areas.geometry.representative_point().within(zone_union)].copy()
 
 
-def load_land_use(config):
-    """Charge et fusionne les quatre fichiers d'utilisation du sol de la CMM."""
-    parts = []
-    for relative_path in config["paths"]["manual_files"]["land_use"]:
-        path = os.path.join(config["paths"]["data_raw"], relative_path)
-        parts.append(gpd.read_file(path))
-    land_use = gpd.GeoDataFrame(pd.concat(parts, ignore_index=True), crs=parts[0].crs)
-    return reproject(land_use, config["target_crs"])
-
-
 def load_commercial(config, study_zone, logger=None):
-    """Charge les terrains commerciaux OSM (landuse=commercial) pour les sites candidats.
+    """Charge les terrains commerciaux OSM (landuse commercial et retail) pour l'ajout.
 
-    Ces polygones servent a croiser les terrains commerciaux de la CMM (code 200) afin
-    d'ecarter les erreurs de classement de la CMM. Retourne None si le fichier n'a pas
-    encore ete telecharge, le pipeline se rabat alors sur les seuls terrains de la CMM.
+    Ces polygones fournissent les sites candidats de la validation qui verifie que
+    l'ajout de services essentiels ne rapporte pas assez pour etre la solution. Les sites
+    commerciaux sont un choix plus simple car les locaux et les sites sont parfois deja
+    disponibles. Retourne None si le fichier n'a pas encore ete telecharge, la validation
+    d'ajout est alors simplement sautee.
     """
     path = _osm_path(config, "commercial")
     if not os.path.exists(path):
@@ -89,6 +79,57 @@ def load_commercial(config, study_zone, logger=None):
     if logger is not None:
         logger.info("Terrains commerciaux OSM charges, %d entite(s)", len(commercial))
     return commercial
+
+
+def load_residential(config, study_zone, logger=None):
+    """Charge les terrains residentiels OSM (landuse=residential).
+
+    Ces polygones confirment qu'un batiment generique yes est bien residentiel, en
+    remplacement des anciennes donnees d'usage du sol de la CMM. Retourne None si le
+    fichier n'a pas encore ete telecharge, le filtrage des residences se rabat alors
+    sur le seul comportement de GMQ210.
+    """
+    path = _osm_path(config, "residential_landuse")
+    if not os.path.exists(path):
+        if logger is not None:
+            logger.warning(
+                "Terrains residentiels OSM absents, %s. Relancer download_data.py",
+                path,
+            )
+        return None
+    residential = gpd.read_file(path)
+    residential = reproject(residential, config["target_crs"])
+    residential = gpd.clip(residential, study_zone)
+    residential = residential[~residential.geometry.is_empty].copy()
+    if logger is not None:
+        logger.info("Terrains residentiels OSM charges, %d entite(s)", len(residential))
+    return residential
+
+
+def load_development(config, study_zone, logger=None):
+    """Charge les terrains a developper OSM pour le logement aine.
+
+    Ces terrains regroupent les friches (brownfield), les terrains vierges (greenfield) et
+    les chantiers (construction). Ce sont les sites candidats ou du logement pour aines
+    pourrait etre implante, retenus par l'optimisation selon leur accessibilite a pied aux
+    services. Retourne None si le fichier n'a pas encore ete telecharge ou si la zone n'en
+    compte aucun, le siting du logement est alors simplement saute.
+    """
+    path = _osm_path(config, "development")
+    if not os.path.exists(path):
+        if logger is not None:
+            logger.warning(
+                "Terrains a developper OSM absents, %s. Relancer download_data.py",
+                path,
+            )
+        return None
+    development = gpd.read_file(path)
+    development = reproject(development, config["target_crs"])
+    development = gpd.clip(development, study_zone)
+    development = development[~development.geometry.is_empty].copy()
+    if logger is not None:
+        logger.info("Terrains a developper OSM charges, %d entite(s)", len(development))
+    return development
 
 
 def load_water(config, study_zone, logger=None):

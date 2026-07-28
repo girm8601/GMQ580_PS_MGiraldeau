@@ -1,10 +1,9 @@
-"""Optimisation par couverture maximale avec spopt, scenarios S1.
+"""Optimisation par couverture maximale avec spopt.
 
-Le modele choisit les sites candidats qui couvrent la plus grande demande encore
-non couverte sous le seuil de marche. La demande est ponderee par les aines, puis
-par la population totale pour l'analyse de sensibilite d'equite. L'assortiment mixte
-final est construit dans main.py, une etape retenant a chaque fois le type et le
-site qui rapportent le plus une fois ponderes par l'importance du service.
+Le modele choisit les sites candidats qui couvrent la plus grande demande sous le
+seuil de marche. Ce noyau sert au levier de logement, choisir les meilleurs terrains
+brownfield pour les aines, et a la validation qui montre que l'ajout de services ne
+rapporte pas assez. Les scenarios eux memes sont construits dans scenarios.py.
 """
 
 from __future__ import annotations
@@ -15,13 +14,14 @@ from src.processing.graph import distances_from_sources
 
 
 def distance_matrix(
-    graph, candidate_nodes, demand_nodes, threshold_m, out_of_reach_multiplier=10.0
+    graph, candidate_nodes, demand_nodes, threshold_m, out_of_reach_multiplier
 ):
     """Matrice des distances de marche entre demande et candidats.
 
     Un passage de Dijkstra par candidat, borne au seuil, remplit une colonne. Les
     paires hors de portee recoivent une valeur superieure au seuil pour que le
-    modele les considere non couvertes.
+    modele les considere non couvertes. Le multiplicateur vient de la configuration,
+    aucune valeur par defaut ne le duplique ici.
     """
     out_of_reach = float(threshold_m) * out_of_reach_multiplier
     matrix = np.full((len(demand_nodes), len(candidate_nodes)), out_of_reach)

@@ -2,9 +2,9 @@
 
 L'experience de GMQ210 a montre qu'une seule etiquette ne suffit pas. La liste
 des valeurs retenues vient de config.yaml. La valeur generique yes ne compte
-comme residentielle que si le batiment tombe dans un polygone d'usage
-residentiel de la CMM, decision documentee au README. Les noeuds d'adresse
-isoles completent les batiments manquants. Chaque residence porte une etiquette
+comme residentielle que si le batiment tombe dans un polygone OpenStreetMap
+landuse=residential, decision documentee au README. Les noeuds d'adresse isoles
+completent les batiments manquants. Chaque residence porte une etiquette
 d'adresse construite a partir du numero civique et de la rue.
 """
 
@@ -60,16 +60,12 @@ def filter_residential(buildings_gdf, buildings_config, residential_zones=None):
     return buildings_gdf[keep_mask].copy(), excluded_counts
 
 
-def residential_land_use(land_use_gdf, config):
-    """Retourne les polygones d'usage residentiel de la CMM."""
-    code_field = config["land_use"]["code_field"]
-    residential_codes = config["residential_buildings"]["residential_land_use_codes"]
-    codes = pd.to_numeric(land_use_gdf[code_field], errors="coerce")
-    return land_use_gdf[codes.isin(residential_codes)].copy()
+def load_residences(config, residential_gdf, logger=None):
+    """Charge les residences, batiments filtres et adresses isolees en points.
 
-
-def load_residences(config, land_use_gdf, logger=None):
-    """Charge les residences, batiments filtres et adresses isolees en points."""
+    residential_gdf est la couche OpenStreetMap landuse=residential, ou None si elle
+    n'a pas ete telechargee. Elle sert a trancher le sort des batiments generiques yes.
+    """
     buildings_config = config["residential_buildings"]
     housenumber_field = buildings_config["housenumber_field"]
     street_field = buildings_config["street_field"]
@@ -89,9 +85,8 @@ def load_residences(config, land_use_gdf, logger=None):
 
     buildings = gpd.read_file(buildings_path)
     buildings = reproject(buildings, config["target_crs"])
-    zones = residential_land_use(land_use_gdf, config)
     residential, excluded_counts = filter_residential(
-        buildings, buildings_config, zones
+        buildings, buildings_config, residential_gdf
     )
     if logger is not None:
         logger.info(

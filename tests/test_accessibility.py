@@ -14,21 +14,21 @@ from src.processing.transit_access import (
 # Paliers repris de config.yaml pour les aines, distance max en metres et libelle.
 BANDS = [
     [200, "Excellent"],
-    [400, "Tres bien"],
+    [400, "Très bien"],
     [600, "Bien"],
     [800, "Acceptable"],
     [999999, "Insuffisant"],
 ]
 FRACTIONS = {
     "Excellent": 1.0,
-    "Tres bien": 0.7,
+    "Très bien": 0.7,
     "Bien": 0.5,
     "Acceptable": 0.3,
     "Insuffisant": 0.0,
 }
 OVERALL = [
     [0.80, "Excellent"],
-    [0.60, "Tres bien"],
+    [0.60, "Très bien"],
     [0.40, "Bien"],
     [0.20, "Acceptable"],
     [0.00, "Insuffisant"],
@@ -38,7 +38,7 @@ OVERALL = [
 def test_band_label_at_thresholds():
     """Chaque palier de distance doit donner le bon libelle."""
     assert band_label(150, BANDS) == "Excellent"
-    assert band_label(300, BANDS) == "Tres bien"
+    assert band_label(300, BANDS) == "Très bien"
     assert band_label(700, BANDS) == "Acceptable"
     assert band_label(1200, BANDS) == "Insuffisant"
 

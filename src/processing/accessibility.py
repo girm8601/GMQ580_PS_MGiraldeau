@@ -3,8 +3,8 @@
 Chaque residence recoit une cote de proximite par type de service selon la
 distance de marche vers le service le plus proche de ce type. Le palier de
 distance donne une fraction de points, definie dans config.yaml, et cette
-fraction est ponderee par l'importance du service pour la population choisie,
-aines ou population generale. Etre proche d'un service important pese lourd,
+fraction est ponderee par l'importance du service pour le groupe choisi,
+aines ou reste de la population. Etre proche d'un service important pese lourd,
 etre loin d'un service moins important pese peu. La somme ponderee est ramenee
 sur 100, puis une cote qualitative globale est attribuee selon des paliers de
 pourcentage. Les paliers et fractions viennent tous de config.yaml.
@@ -96,7 +96,8 @@ def compute_distances(layers, residences, config, logger):
     Les distances sont calculees sans borne pour donner la vraie distance minimale
     vers chaque service, meme au dela des seuils, ce qui evite les valeurs manquantes
     dans les infobulles. Retourne aussi la meilleure marche d'un arret vers chaque type
-    de service, pour l'acces par le transport.
+    de service et la marche de chaque noeud vers l'arret le plus proche, reutilisee pour
+    l'acces au transport des residences, des services et des sites candidats.
     """
     graph = layers["graph"]
     residences = residences.copy()
@@ -132,7 +133,14 @@ def compute_distances(layers, residences, config, logger):
         row.residence_id: transit_reached.get(row.node)
         for row in residences.itertuples()
     }
-    return residences, services, distances_by_type, home_to_stop, stop_to_service
+    return (
+        residences,
+        services,
+        distances_by_type,
+        home_to_stop,
+        stop_to_service,
+        transit_reached,
+    )
 
 
 def scored_residences(residences, distances_by_type, importance, bands, config):

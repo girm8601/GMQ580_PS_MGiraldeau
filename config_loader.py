@@ -21,6 +21,7 @@ class ConfigError(Exception):
 # Sections de premier niveau obligatoires dans config.yaml.
 REQUIRED_KEYS = [
     "target_crs",
+    "geographic_crs",
     "source_crs",
     "study_area",
     "quality_bands",
@@ -29,15 +30,15 @@ REQUIRED_KEYS = [
     "transit",
     "vulnerability",
     "essential_services",
-    "land_use",
     "optimization",
     "importance_seniors",
-    "importance_population_total",
+    "importance_rest",
     "visualization",
     "osm_columns",
     "osm_extra_tags",
     "logging",
     "export",
+    "report",
     "paths",
 ]
 

@@ -33,12 +33,18 @@ def coverage_rate(residences_df, covered_field, weight_field):
     return covered_weight(residences_df, covered_field, weight_field) / total_weight
 
 
-def coverage_summary(residences, distances_by_type, transit_by_type, config):
-    """Part couverte par type, par population et par mode, aux seuils de couverture."""
+def coverage_summary(
+    residences, distances_by_type, transit_seniors, transit_rest, config
+):
+    """Part couverte par type, par groupe et par mode, aux seuils de couverture.
+
+    Le groupe seniors utilise le poids d'aines et le transport a 800 m, le groupe rest est
+    le reste de la population, poids du reste et transport a 1000 m.
+    """
     thr_seniors = config["optimization"]["coverage_threshold_seniors_m"]
-    thr_population = config["optimization"]["coverage_threshold_population_m"]
+    thr_rest = config["optimization"]["coverage_threshold_rest_m"]
     ref_seniors = config["optimization"]["coverage_reference_seniors_m"]
-    ref_population = config["optimization"]["coverage_reference_population_m"]
+    ref_rest = config["optimization"]["coverage_reference_rest_m"]
     plans = [
         (
             "seniors",
@@ -51,15 +57,22 @@ def coverage_summary(residences, distances_by_type, transit_by_type, config):
             "seniors",
             "seniors_weight",
             "marche_transport",
-            transit_by_type,
+            transit_seniors,
             [ref_seniors, thr_seniors],
         ),
         (
-            "population_total",
-            "population_weight",
+            "rest",
+            "rest_weight",
             "marche",
             distances_by_type,
-            [ref_population, thr_population],
+            [ref_rest, thr_rest],
+        ),
+        (
+            "rest",
+            "rest_weight",
+            "marche_transport",
+            transit_rest,
+            [ref_rest, thr_rest],
         ),
     ]
     rows = []

@@ -4,11 +4,11 @@
 
 # --- Systemes de coordonnees ---
 target_crs: "EPSG:2950"              # NAD83(CSRS) / MTM zone 8, CRS commun a toutes les couches
+geographic_crs: "EPSG:4326"          # WGS84, affichage web des cartes et coordonnees des tableaux exportes
 source_crs:                          # CRS d'origine de chaque source (reference et audit)
   osm: "EPSG:4326"
   dissemination_areas: "EPSG:3347"
   municipal_limits: "EPSG:4269"
-  land_use: "EPSG:32188"
   transit_exo: "EPSG:4326"
 
 # --- Zone d'etude ---
@@ -20,7 +20,7 @@ study_area:
     - "McMasterville"
     - "Otterburn Park"
   municipality_name_field: "MUS_NM_MUN"   # dans munic_s (limites municipales, polygones)
-  west_bank:                              # municipalites a l'ouest du Richelieu (effet de barriere)
+  west_bank:                              # municipalites a l'ouest du Richelieu (validation de barriere)
     - "Beloeil"
     - "McMasterville"
   east_bank:                              # municipalites a l'est du Richelieu
@@ -37,29 +37,28 @@ residential_buildings:
   # Valeurs retenues comme residentielles, liste de GMQ210 completee des valeurs
   # usuelles en banlieue quebecoise (house, bungalow, duplex). La valeur generique
   # "yes" ne compte comme residentielle que si le batiment tombe dans un polygone
-  # d'usage residentiel de la CMM (codes 100 a 104, 112, 113 et 114).
+  # OpenStreetMap landuse=residential.
   kept_types: ["house", "detached", "apartments", "residential", "yes",
                "static_caravan", "semidetached_house", "terrace", "farm",
                "bungalow", "duplex"]
   generic_value: "yes"               # valeur de kept_types soumise au croisement d'usage du sol
-  residential_land_use_codes: [100, 101, 102, 103, 104, 112, 113, 114]
   address_tag: "addr:housenumber"   # noeuds d'adresse isoles, complement des batiments
   street_field: "addr:street"       # rue de l'adresse, pour l'etiquette affichee
   housenumber_field: "addr:housenumber"
 
 # --- Marche a pied, cotes de proximite ---
-# Paliers de distance de marche vers un service, propres a chaque population.
-# Les aines tolerent des distances plus courtes que la population generale.
+# Paliers de distance de marche vers un service, propres a chaque groupe.
+# Les aines tolerent des distances plus courtes que le reste de la population.
 quality_bands:
   seniors:                          # [distance max en m, libelle]
     - [200, "Excellent"]            # moins de 200 m
-    - [400, "Tres bien"]            # 200 a 400 m
+    - [400, "Très bien"]            # 200 a 400 m
     - [600, "Bien"]                 # 400 a 600 m
     - [800, "Acceptable"]           # 600 a 800 m
     - [999999, "Insuffisant"]       # plus de 800 m
-  population_total:                 # [distance max en m, libelle]
+  rest:                             # [distance max en m, libelle], le reste de la population
     - [400, "Excellent"]            # moins de 400 m
-    - [600, "Tres bien"]            # 400 a 600 m
+    - [600, "Très bien"]            # 400 a 600 m
     - [800, "Bien"]                 # 600 a 800 m
     - [1000, "Acceptable"]          # 800 a 1000 m
     - [999999, "Insuffisant"]       # plus de 1000 m
@@ -67,21 +66,22 @@ quality_bands:
 # important pese lourd, etre loin d'un service moins important pese peu.
 band_fractions:
   Excellent: 1.0
-  Tres bien: 0.7
+  Très bien: 0.7
   Bien: 0.5
   Acceptable: 0.3
   Insuffisant: 0.0
 # Paliers du pourcentage global d'accessibilite vers le libelle qualitatif d'une residence.
 overall_quality_ratios:             # [ratio minimal du pourcentage, libelle]
   - [0.80, "Excellent"]
-  - [0.60, "Tres bien"]
+  - [0.60, "Très bien"]
   - [0.40, "Bien"]
   - [0.20, "Acceptable"]
   - [0.00, "Insuffisant"]
 
 # --- Acces au transport collectif (reseau fixe) ---
 transit:
-  max_stop_distance_m: 600          # un arret compte comme accessible s'il est a <= 600 m a pied
+  max_stop_distance_seniors_m: 800     # marche max vers un arret pour un aine, sa distance acceptable
+  max_stop_distance_rest_m: 1000       # marche max vers un arret pour le reste de la population
   fixed_route_types: [3]            # GTFS, 3 = autobus (reseau fixe)
   demand_route_types: [1501]        # GTFS, 1501 = sur reservation (a la demande, exclu)
   lat_field: "stop_lat"
@@ -96,7 +96,7 @@ transit:
 vulnerability:
   criterion: "65 ans et plus"
   characteristic_id: 24                        # ID_CARACTERISTIQUE du 65 ans et plus (compte)
-  total_population_id: 1                       # ID_CARACTERISTIQUE de la population totale 2021
+  total_population_id: 1                        # ID_CARACTERISTIQUE de la population totale 2021
   value_column: "C1_CHIFFRE_TOTAL"
   ad_join_field: "IDUGD"                       # cle limites <-> profil
   csv_encoding: "latin-1"                      # encodage du profil StatCan (colonnes accentuees)
@@ -132,35 +132,24 @@ essential_services:
   convenience:
     shop: ["convenience"]
 
-# --- Utilisation du sol (filtrage des sites candidats) ---
-# Un site candidat doit etre un vrai terrain commercial. Le code 200 de la CMM est
-# croise avec un polygone OpenStreetMap landuse=commercial, ce qui ecarte les erreurs
-# de la CMM situees en reserve naturelle ou en zone non commerciale. Le site doit
-# aussi se trouver pres du reseau pietonnier pour etre accessible.
-land_use:
-  code_field: "UTIL_SOL"
-  candidate_codes: [200]            # 200 = commerciale (CMM)
-  road_max_distance_m: 300          # distance maximale d'un site candidat au reseau
-
 # --- Optimisation (spopt, couverture maximale) ---
+# Le noyau de couverture maximale sert seulement a la validation qui montre que l'ajout de
+# services essentiels ne rapporte pas assez pour etre la solution, pour les deux groupes.
 optimization:
-  n_services_min: 1
-  n_services_max: 10
+  n_service_check: 5                           # services testes pour la validation d'ajout ecarte, de 1 a 5
   coverage_threshold_seniors_m: 800            # un aine est couvert si le service est a moins de 800 m
-  coverage_threshold_population_m: 1000        # la population generale tolere jusqu'a 1000 m
+  coverage_threshold_rest_m: 1000              # le reste de la population tolere jusqu'a 1000 m
   matrix_cutoff_m: 1000                        # portee maximale de la matrice de distances
-  site_spacing_m: 300                          # distance minimale entre deux sites ajoutes
-  map_steps_seniors: [2, 6, 10]                # etapes des cartes S1 pour les aines
-  map_steps_population: [10]                   # etape de la carte S1 pour la population generale
-  weightings: ["seniors", "population_total"]  # analyse de sensibilite d'equite
+  site_spacing_m: 300                          # distance minimale entre deux sites retenus
+  site_road_max_distance_m: 300                # distance maximale d'un site candidat au reseau pietonnier
   out_of_reach_multiplier: 10.0                # multiplie le seuil pour marquer une paire hors de portee
-  coverage_reference_seniors_m: 200            # seuil de reference du tableau S0 pour les aines (palier Excellent)
-  coverage_reference_population_m: 400         # seuil de reference du tableau S0 pour la population generale (palier Excellent)
+  coverage_reference_seniors_m: 200            # seuil de reference de la couverture pour les aines (palier Excellent)
+  coverage_reference_rest_m: 400               # seuil de reference de la couverture pour le reste (palier Excellent)
 
 # --- Importance des services, deux jeux de poids ---
-# Un jeu pour les aines et un pour la population generale, car les deux populations ne
-# privilegient pas les memes services. Les poids guident la cote sur 100 par residence,
-# le choix de l'assortiment a ajouter (S1) et la couverture moyenne des cartes.
+# Le jeu des aines guide leur cote sur 100, le classement des adresses et le choix des
+# sites de logement. Le jeu du reste de la population sert au diagnostic d'equite, il
+# montre que ce groupe privilegie des services differents, comme l'ecole et la garderie.
 importance_seniors:
   supermarket: 1.0     # Le service le plus utile, on y va presque tous les jours
   pharmacy: 1.0        # Essentiel pour les medicaments et le suivi des soins
@@ -171,7 +160,7 @@ importance_seniors:
   veterinary: 0.3      # Utile seulement pour les proprietaires d'animaux
   school: 0.1          # Peu utile au quotidien pour cette population
   kindergarten: 0.1    # Presque jamais utile pour cette population
-importance_population_total:
+importance_rest:
   supermarket: 1.0     # Le service le plus utile, on y va tres souvent
   convenience: 0.8     # Pratique pour les achats de derniere minute
   school: 0.8          # Critere important pour les familles
@@ -185,7 +174,6 @@ importance_population_total:
 # --- Visualisation (cartes interactives) ---
 visualization:
   # Fond de carte.
-  display_crs: "EPSG:4326"          # CRS d'affichage web des cartes folium (WGS84)
   map_zoom_start: 13
   map_tiles: "cartodbpositron"
   font_awesome_cdn: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
@@ -193,7 +181,6 @@ visualization:
   color_stops: "gray"              # bulle grise, arrets d'autobus
   color_stations: "black"          # bulle noire, gares et lignes de train
   color_services: "purple"         # mauve fonce, repere des services essentiels existants
-  color_new_sites: "cadetblue"     # bleu cadet, reperes des nouveaux services ajoutes (S1)
   color_river: "lightblue"         # bleu pale, riviere Richelieu
   color_network_casing: "gray"     # contour gris du reseau pietonnier
   color_network_fill: "white"      # remplissage blanc du reseau pietonnier
@@ -201,16 +188,32 @@ visualization:
   color_municipal_limits: "black"  # trait noir des limites municipales
   color_residence_outline: "black" # contour noir des points de residence
   color_residence_default: "gray"  # gris, cote qualitative absente ou inconnue
-  # Couleurs des residences selon la cote qualitative (comme GMQ210).
+  # Couleurs des residences et des secteurs selon la cote qualitative (comme GMQ210).
   quality_colors:
     Excellent: "green"             # vert
-    "Tres bien": "lightgreen"      # vert pale
+    "Très bien": "lightgreen"      # vert pale
     Bien: "yellow"                 # jaune
     Acceptable: "orange"           # orange
     Insuffisant: "red"             # rouge
   # Pictogrammes FontAwesome pour les arrets et gares, en bulles.
   icon_stop: "fa-bus"
   icon_station: "fa-train"
+  # Pictogrammes FontAwesome des secteurs du levier, carres au centroide.
+  icon_best_address: "fa-house-circle-check"   # secteurs d'adresses existantes
+  icon_new_residence: "fa-helmet-safety"       # secteurs ou implanter du logement
+  # Noms des couches affiches dans la legende des cartes.
+  layer_names:
+    study_outline: "Limite de la zone d'étude"
+    municipal_limits: "Limites municipales"
+    river: "Rivière Richelieu"
+    walk_network: "Réseau piétonnier"
+    train_lines: "Lignes de train"
+    services: "Services essentiels"
+    stops: "Arrêts d'autobus"
+    stations: "Gares de train"
+    residences: "Résidences"
+    address_sectors: "Meilleurs secteurs d'adresses existantes"
+    site_sectors: "Meilleurs secteurs où implanter des logements"
   # Pictogrammes FontAwesome par type de service, en reperes (marker).
   service_icons:
     pharmacy: "fa-pills"
@@ -225,20 +228,26 @@ visualization:
   # Libelles francais des types de services pour l'affichage.
   service_labels:
     pharmacy: "Pharmacie"
-    school: "Ecole"
+    school: "École"
     kindergarten: "Garderie"
     bank: "Banque"
-    health: "Sante"
+    health: "Santé"
     dentist: "Dentiste"
-    veterinary: "Veterinaire"
-    supermarket: "Epicerie"
-    convenience: "Depanneur"
+    veterinary: "Vétérinaire"
+    supermarket: "Épicerie"
+    convenience: "Dépanneur"
   # Tailles des pictogrammes, en pixels, et ratio de l'icone dans sa bulle ou son repere.
   size_stop_bubble: 20
   size_station_bubble: 20
   size_service_marker: 22
-  size_new_site_marker: 24
+  size_sector_marker: 34             # carre au centroide d'un secteur, plus gros pour ressortir
+  size_sector_marker_offset: 20      # ecart horizontal des deux carres, pour qu'ils restent lisibles sur une meme aire
+  size_cluster_marker: 40            # bulle ronde d'un cluster de residences
   size_icon_ratio: 0.55
+  # Largeur maximale des infobulles, en pixels.
+  size_popup_service: 220
+  size_popup_sector: 240
+  size_popup_residence: 250
   # Epaisseurs, opacites et pointilles des traits et des points.
   style_study_outline_weight: 2.5
   style_municipal_limits_weight: 2
@@ -253,24 +262,25 @@ visualization:
   style_residence_radius: 4
   style_residence_weight: 0.4
   style_residence_fill_opacity: 0.8
+  style_sector_fill_opacity: 0.35    # remplissage translucide d'un secteur du levier
+  style_sector_outline_weight: 2     # contour d'un secteur du levier
   map_network_simplify_m: 2          # tolerance de simplification du reseau affiche sur les cartes
   # Graphiques statiques (matplotlib).
-  weighting_labels:
-    seniors: "Aines"
-    population_total: "Population generale"
   chart_dpi: 150
-  chart_figsize_gain: [5, 4.5]       # taille d'un panneau, largeur totale selon le nombre de panneaux
-  chart_figsize_bar: [8, 5]
+  chart_figsize_bar: [7, 5]          # taille d'un panneau de couverture, largeur totale selon le nombre de panneaux
+  chart_figsize_gain: [6, 4.5]       # taille d'un panneau de gain
   chart_zoom_margin: 2.0             # marge verticale (%) resserree sur les valeurs de la courbe de gain
   chart_marker: "o"
   chart_grid_alpha: 0.3
-  color_chart_bar: "#185FA5"         # bleu, barres de couverture S0
-  label_chart_gain_xaxis: "Nombre de services ajoutes"
+  color_chart_bar: "#185FA5"         # bleu, barres de couverture
+  weighting_labels:
+    seniors: "Aînés"
+    rest: "Reste de la population"
+  label_chart_bar_xaxis: "Demande couverte à pied (%)"
+  label_chart_gain_xaxis: "Nombre de services ajoutés"
   label_chart_gain_yaxis: "Demande couverte (%)"
-  label_chart_bar_xaxis: "Demande couverte a pied (%)"
-  title_chart_gain: "Gain de couverture selon le nombre de services ajoutes"
-  title_s0_coverage_seniors: "Couverture S0 des aines par type de service"
-  title_s0_coverage_population: "Couverture S0 de la population generale par type de service"
+  title_coverage: "Couverture actuelle par type de service selon l'ordre de préférence de chaque groupe"
+  title_chart_gain: "Gain de couverture selon le nombre de services ajoutés"
 
 # --- Colonnes et etiquettes OpenStreetMap conservees au telechargement ---
 osm_columns:
@@ -279,12 +289,21 @@ osm_columns:
   addresses: ["addr:housenumber", "addr:street", "building", "geometry"]
   water: ["natural", "water", "name", "geometry"]
   commercial: ["landuse", "name", "geometry"]
+  residential: ["landuse", "name", "geometry"]
+  development: ["landuse", "name", "geometry"]
 # Etiquettes OSM des couches telechargees hors de essential_services.
+# commercial regroupe commercial et retail, plus simple pour de nouveaux services car les
+# locaux et sites sont parfois deja disponibles. development regroupe les terrains a
+# developper, friche (brownfield), terrain vierge (greenfield) et chantier (construction).
 osm_extra_tags:
   water:
     natural: "water"
   commercial:
-    landuse: "commercial"
+    landuse: ["commercial", "retail"]
+  residential:
+    landuse: "residential"
+  development:
+    landuse: ["brownfield", "greenfield", "construction"]
 
 # --- Journalisation ---
 logging:
@@ -292,7 +311,34 @@ logging:
 
 # --- Export ---
 export:
-  coordinate_precision: 1            # decimales des coordonnees x, y des sites recommandes exportes
+  coordinate_precision: 6            # decimales des latitudes et longitudes exportees, environ dix centimetres
+
+# --- Rapport PDF (diffusion des resultats) ---
+report:
+  course: "GMQ 580 - Géo-informatique II"
+  author: "Mylène Giraldeau"
+  title: "Où vieillir à pied dans la Vallée du Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés"
+  logo: "assets/logo_uds.png"        # logo de l'universite en page titre, saute si absent
+  output: "outputs/rapport_projet.pdf"
+  maps_base_url: "https://girm8601.github.io/GMQ580_PS_MGiraldeau/outputs/maps"  # cartes publiees sur GitHub Pages
+  # Mise en page, longueurs en millimetres.
+  page_margin_mm: 15                 # marge de la page, sert aussi au saut de page automatique
+  logo_width_mm: 70                  # largeur du logo centre sur la page titre
+  # Tailles de police, en points.
+  font_size_title: 18                # titre du projet, page titre
+  font_size_subtitle: 13             # cours, auteur et date, page titre
+  font_size_heading: 15              # titre d'un volet
+  font_size_body: 11                 # texte courant et liens de cartes
+  font_size_table_title: 10          # titre place au dessus d'un tableau
+  table_font_size: 8                 # taille de depart du contenu des tableaux
+  table_min_font_size: 5             # taille minimale, la police descend jusqu'a ce que le texte tienne dans sa case
+  # Couleurs, en composantes rouge, vert et bleu.
+  color_heading: [15, 110, 86]       # vert des titres de volets
+  color_link: [24, 95, 165]          # bleu des liens vers les cartes
+  section_titles:
+    diagnostic: "1. Diagnostic d'équité"
+    validation: "2. Validation des pistes écartées"
+    lever: "3. Levier, la solution retenue"
 
 # --- Chemins ---
 paths:
@@ -307,11 +353,6 @@ paths:
   manual_files:
     municipal_limits: "decoupages_administratifs_QC/munic_s.shp"
     dissemination_areas: "AD_recensement_2021_CAN/AD_2021.shp"
-    land_use:
-      - "CMM_utilisation_sol_2022_VR/Beloeil_sol.shp"
-      - "CMM_utilisation_sol_2022_VR/MSH_sol.shp"
-      - "CMM_utilisation_sol_2022_VR/McMasterville_sol.shp"
-      - "CMM_utilisation_sol_2022_VR/Otterburn_Park_sol.shp"
     census_profile: "donnees_recensement_2021_QC/Francais_CSV_data_Quebec.csv"
     gtfs: "google_transit_VR"
     train_stations: "train_gares_exo.geojson"
@@ -324,30 +365,31 @@ paths:
     addresses: "osm/addresses.gpkg"
     water: "osm/water.gpkg"
     commercial: "osm/commercial.gpkg"
+    residential_landuse: "osm/residential.gpkg"
+    development: "osm/development.gpkg"
   # Couches intermediaires ecrites dans data_processed.
   processed_files:
     residences: "residences.gpkg"
     bus_stops: "arrets_bus.gpkg"
     stations: "gares.gpkg"
     dissemination_areas: "aires_diffusion.gpkg"
-    candidate_sites: "sites_candidats.gpkg"
+    development_sites: "sites_developpement.gpkg"
     census_profile: "profil_recensement_filtre.csv"
-  # Cartes HTML ecrites dans outputs_maps.
+  # Cartes HTML ecrites dans outputs_maps, seulement le levier. Elles sont versionnees et
+  # publiees sur GitHub Pages, voir report.maps_base_url.
   map_files:
-    s0_walk_seniors: "carte_s0_marche_aines.html"
-    s0_walk_population: "carte_s0_marche_population.html"
-    s0_walk_transit_seniors: "carte_s0_marche_transport_aines.html"
-    s1_prefix_seniors: "carte_s1_aines"          # complete par _n<etape>.html
-    s1_prefix_population: "carte_s1_population"  # complete par _n<etape>.html
+    lever_walk: "carte_levier_marche_aines.html"
+    lever_transit: "carte_levier_transport_aines.html"
   # Tableaux CSV ecrits dans outputs_tables.
   table_files:
-    s0_coverage: "s0_couverture.csv"
-    barrier_effect: "effet_barriere.csv"
-    gains_s1: "gains_s1.csv"
-    recommended_sites: "sites_recommandes.csv"
+    coverage: "couverture_actuelle.csv"
+    comparison: "ecart_aines_reste.csv"
+    service_addition: "effet_ajout_services.csv"
+    barrier: "effet_barriere.csv"
     crossing_bridges: "ponts_traversants.csv"
+    recommendation_walk: "recommandations_marche.csv"
+    recommendation_transit: "recommandations_transport.csv"
   # Figures PNG ecrites dans outputs_figures.
   figure_files:
-    s0_coverage_seniors: "s0_couverture_aines.png"
-    s0_coverage_population: "s0_couverture_population.png"
-    gain_curve: "courbe_gain.png"
+    coverage: "couverture_deux_groupes.png"
+    gain: "gain_deux_groupes.png"

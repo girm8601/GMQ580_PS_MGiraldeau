@@ -10,7 +10,6 @@ BUILDINGS_CONFIG = {
     "field": "building",
     "kept_types": ["house", "detached", "yes"],
     "generic_value": "yes",
-    "residential_land_use_codes": [100],
     "address_tag": "addr:housenumber",
     "housenumber_field": "addr:housenumber",
     "street_field": "addr:street",
@@ -32,9 +31,9 @@ def make_buildings():
 
 
 def make_residential_zone():
-    """Zone residentielle qui couvre seulement le premier batiment yes."""
+    """Polygone OSM landuse=residential qui couvre seulement le premier batiment yes."""
     return gpd.GeoDataFrame(
-        {"UTIL_SOL": [100]}, geometry=[square(3.5, -1, 3.0)], crs="EPSG:2950"
+        {"landuse": ["residential"]}, geometry=[square(3.5, -1, 3.0)], crs="EPSG:2950"
     )
 
 
