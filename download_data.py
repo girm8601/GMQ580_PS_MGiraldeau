@@ -1,10 +1,10 @@
 """Regeneration des couches OpenStreetMap du projet.
 
 Les couches OpenStreetMap, reseau pietonnier, services, batiments, adresses,
-plans d'eau et sites commerciaux, se telechargent ici avec OSMnx et s'ecrivent
-dans data/processed, car elles sont generees par le pipeline et non fournies
-telles quelles. Les autres sources, recensement, limites, utilisation du sol et
-transport exo, se telechargent manuellement depuis les liens du README, section
+plans d'eau, terrains commerciaux, residentiels et a developper, se telechargent
+ici avec OSMnx et s'ecrivent dans data/processed, car elles sont generees par le
+pipeline et non fournies telles quelles. Les autres sources, recensement, limites
+et transport exo, se telechargent manuellement depuis les liens du README, section
 Donnees, et vont dans data/raw. Ce script verifie leur presence et signale ce
 qui manque.
 
@@ -71,13 +71,52 @@ def _write_features(gdf, columns, path, logger, label):
     logger.info("%s ecrits, %d entite(s), %s", label, len(gdf), path)
 
 
+def _download_layer(
+    polygon,
+    config,
+    path_key,
+    columns_key,
+    tags,
+    label,
+    logger,
+    polygons_only=False,
+    optional_note=None,
+):
+    """Telecharge une couche vectorielle OSM si elle est absente de data/processed.
+
+    tags est la requete OSMnx. polygons_only ne garde que les polygones. Si optional_note
+    est fourni, un echec est journalise en avertissement suivi de cette note sur la
+    consequence, plutot que de bloquer le pipeline.
+    """
+    import osmnx as ox
+
+    path = _osm_path(config, path_key)
+    if os.path.exists(path):
+        logger.info("%s, couche deja presente (%s), telechargement saute", label, path)
+        return
+    logger.info("Telechargement OSM en cours, %s", label)
+    try:
+        features = ox.features_from_polygon(polygon, tags=tags)
+        if polygons_only:
+            keep = features.geometry.geom_type.isin(["Polygon", "MultiPolygon"])
+            features = features[keep]
+        _write_features(
+            features, config["osm_columns"][columns_key], path, logger, label
+        )
+    except Exception as error:
+        if optional_note is None:
+            raise
+        logger.warning("%s non recuperes (%s), %s", label, error, optional_note)
+
+
 def download_osm(config, logger):
     """Telecharge les couches OpenStreetMap absentes de data/processed."""
     import osmnx as ox
 
     polygon = extraction_polygon(config, logger)
-    columns = config["osm_columns"]
     extra_tags = config["osm_extra_tags"]
+    buildings_field = config["residential_buildings"]["field"]
+    address_tag = config["residential_buildings"]["address_tag"]
 
     graph_path = _osm_path(config, "walk_graph")
     if os.path.exists(graph_path):
@@ -91,78 +130,75 @@ def download_osm(config, logger):
         ox.save_graphml(graph, graph_path)
         logger.info("Graphe pietonnier ecrit, %s", graph_path)
 
-    services_path = _osm_path(config, "services")
-    if os.path.exists(services_path):
-        logger.info("Services deja presents, %s, telechargement saute", services_path)
-    else:
-        logger.info("Telechargement des services essentiels OSM en cours")
-        tags = flatten_service_tags(config["essential_services"])
-        services = ox.features_from_polygon(polygon, tags=tags)
-        _write_features(
-            services, columns["services"], services_path, logger, "Services"
-        )
-
-    buildings_path = _osm_path(config, "buildings")
-    if os.path.exists(buildings_path):
-        logger.info("Batiments deja presents, %s, telechargement saute", buildings_path)
-    else:
-        logger.info("Telechargement des batiments OSM en cours")
-        buildings = ox.features_from_polygon(
-            polygon, tags={config["residential_buildings"]["field"]: True}
-        )
-        _write_features(
-            buildings, columns["buildings"], buildings_path, logger, "Batiments"
-        )
-
-    addresses_path = _osm_path(config, "addresses")
-    if os.path.exists(addresses_path):
-        logger.info("Adresses deja presentes, %s, telechargement saute", addresses_path)
-    else:
-        logger.info("Telechargement des noeuds d'adresse OSM en cours")
-        addresses = ox.features_from_polygon(
-            polygon, tags={config["residential_buildings"]["address_tag"]: True}
-        )
-        _write_features(
-            addresses, columns["addresses"], addresses_path, logger, "Adresses"
-        )
-
-    water_path = _osm_path(config, "water")
-    if os.path.exists(water_path):
-        logger.info("Hydrographie deja presente, %s, telechargement saute", water_path)
-    else:
-        logger.info("Telechargement des plans d'eau OSM en cours")
-        water = ox.features_from_polygon(polygon, tags=extra_tags["water"])
-        water = water[water.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]
-        _write_features(water, columns["water"], water_path, logger, "Plans d'eau")
-
-    commercial_path = _osm_path(config, "commercial")
-    if os.path.exists(commercial_path):
-        logger.info(
-            "Terrains commerciaux deja presents, %s, telechargement saute",
-            commercial_path,
-        )
-    else:
-        logger.info("Telechargement des terrains commerciaux OSM en cours")
-        try:
-            commercial = ox.features_from_polygon(
-                polygon, tags=extra_tags["commercial"]
-            )
-            commercial = commercial[
-                commercial.geometry.geom_type.isin(["Polygon", "MultiPolygon"])
-            ]
-            _write_features(
-                commercial,
-                columns["commercial"],
-                commercial_path,
-                logger,
-                "Terrains commerciaux",
-            )
-        except Exception as error:
-            logger.warning(
-                "Terrains commerciaux non recuperes (%s), croisement des sites "
-                "candidats saute",
-                error,
-            )
+    _download_layer(
+        polygon,
+        config,
+        "services",
+        "services",
+        flatten_service_tags(config["essential_services"]),
+        "Services",
+        logger,
+    )
+    _download_layer(
+        polygon,
+        config,
+        "buildings",
+        "buildings",
+        {buildings_field: True},
+        "Batiments",
+        logger,
+    )
+    _download_layer(
+        polygon,
+        config,
+        "addresses",
+        "addresses",
+        {address_tag: True},
+        "Adresses",
+        logger,
+    )
+    _download_layer(
+        polygon,
+        config,
+        "water",
+        "water",
+        extra_tags["water"],
+        "Plans d'eau",
+        logger,
+        polygons_only=True,
+    )
+    _download_layer(
+        polygon,
+        config,
+        "commercial",
+        "commercial",
+        extra_tags["commercial"],
+        "Terrains commerciaux",
+        logger,
+        polygons_only=True,
+        optional_note="validation d'ajout de services sautee",
+    )
+    _download_layer(
+        polygon,
+        config,
+        "residential_landuse",
+        "residential",
+        extra_tags["residential"],
+        "Terrains residentiels",
+        logger,
+        polygons_only=True,
+    )
+    _download_layer(
+        polygon,
+        config,
+        "development",
+        "development",
+        extra_tags["development"],
+        "Terrains a developper",
+        logger,
+        polygons_only=True,
+        optional_note="siting du logement aine saute",
+    )
 
 
 def main():
