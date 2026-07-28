@@ -1,32 +1,34 @@
 """Cartes interactives du projet avec folium.
 
-Chaque residence est un point colore selon sa cote qualitative, comme dans GMQ210.
-Un clic sur une residence affiche son adresse, sa cote sur 100, sa cote qualitative
-et sa distance vers chaque service. Les services essentiels existants et les
-nouveaux services ajoutes sont des reperes en forme d'epingle. Les arrets d'autobus
-et les gares sont des bulles rondes avec leur pictogramme blanc. Les limites
-municipales et la limite de la zone d'etude sont tracees en noir. Toutes les
-couleurs, tailles et epaisseurs viennent de la section visualization de config.yaml.
+Le projet produit les deux cartes du levier, a la marche et au transport. Chaque
+residence est un point colore selon sa cote qualitative, regroupe en clusters, comme dans
+GMQ210. Un cluster prend la couleur de la cote moyenne des points qu'il contient. Les
+services essentiels existants sont des reperes en forme d'epingle. Les arrets d'autobus et
+les gares sont des bulles rondes. Les meilleurs secteurs d'adresses et de sites ressortent
+en polygones remplis colores par leur cote moyenne, avec un carre pictogramme au centroide.
+Les limites sont tracees en noir. Toutes les couleurs, tailles, epaisseurs et noms de
+couches viennent de la section visualization de config.yaml.
 """
 
 from __future__ import annotations
 
+import json
 import os
 
 import folium
+from folium.plugins import MarkerCluster
 
 
-def _to_display(gdf, display_crs):
+def _to_display(gdf, geographic_crs):
     """Reprojette une couche vers le CRS d'affichage web."""
-    return gdf.to_crs(display_crs)
+    return gdf.to_crs(geographic_crs)
 
 
 def ordered_service_types(service_types, importance):
     """Types de service tries du plus important au moins important pour l'affichage.
 
     Utilise pour lister les distances dans l'infobulle d'une residence dans le
-    meme ordre que l'importance qui a servi a calculer sa cote, aines ou
-    population generale selon la carte.
+    meme ordre que l'importance des aines qui a servi a calculer sa cote.
     """
     return sorted(service_types, key=lambda t: -importance.get(t, 0.0))
 
@@ -41,9 +43,9 @@ def _save(web_map, path, logger=None):
         logger.info("Carte exportee, %s", path)
 
 
-def _base_map(zone_gdf, vc):
+def _base_map(zone_gdf, vc, geographic_crs):
     """Cree la carte de base centree sur la zone d'etude, avec Font Awesome charge."""
-    zone = _to_display(zone_gdf, vc["display_crs"])
+    zone = _to_display(zone_gdf, geographic_crs)
     center = zone.geometry.union_all().centroid
     web_map = folium.Map(
         location=[center.y, center.x],
@@ -56,11 +58,11 @@ def _base_map(zone_gdf, vc):
     return web_map
 
 
-def _add_study_outline(web_map, zone_gdf, display_crs, color, weight):
+def _add_study_outline(web_map, zone_gdf, geographic_crs, group_name, color, weight):
     """Ajoute le trait noir qui delimite la zone d'etude."""
     folium.GeoJson(
-        _to_display(zone_gdf[["geometry"]], display_crs).to_json(),
-        name="Limite de la zone d'etude",
+        _to_display(zone_gdf[["geometry"]], geographic_crs).to_json(),
+        name=group_name,
         style_function=lambda feature: {
             "fillOpacity": 0.0,
             "color": color,
@@ -69,13 +71,15 @@ def _add_study_outline(web_map, zone_gdf, display_crs, color, weight):
     ).add_to(web_map)
 
 
-def _add_municipal_limits(web_map, municipalities_gdf, display_crs, color, weight):
+def _add_municipal_limits(
+    web_map, municipalities_gdf, geographic_crs, group_name, color, weight
+):
     """Ajoute les limites municipales en trait noir fin, sans nom de municipalite."""
     if municipalities_gdf is None or len(municipalities_gdf) == 0:
         return
     folium.GeoJson(
-        _to_display(municipalities_gdf[["geometry"]], display_crs).to_json(),
-        name="Limites municipales",
+        _to_display(municipalities_gdf[["geometry"]], geographic_crs).to_json(),
+        name=group_name,
         style_function=lambda feature: {
             "fillOpacity": 0.0,
             "color": color,
@@ -84,13 +88,15 @@ def _add_municipal_limits(web_map, municipalities_gdf, display_crs, color, weigh
     ).add_to(web_map)
 
 
-def _add_river(web_map, water_gdf, display_crs, color, weight, fill_opacity):
+def _add_river(
+    web_map, water_gdf, geographic_crs, group_name, color, weight, fill_opacity
+):
     """Ajoute la riviere au dessus du reseau mais sous les points."""
     if water_gdf is None or len(water_gdf) == 0:
         return
     folium.GeoJson(
-        _to_display(water_gdf[["geometry"]], display_crs).to_json(),
-        name="Riviere Richelieu",
+        _to_display(water_gdf[["geometry"]], geographic_crs).to_json(),
+        name=group_name,
         style_function=lambda feature: {
             "fillColor": color,
             "color": color,
@@ -103,7 +109,8 @@ def _add_river(web_map, water_gdf, display_crs, color, weight, fill_opacity):
 def _add_walk_network(
     web_map,
     edges_gdf,
-    display_crs,
+    geographic_crs,
+    group_name,
     casing_color,
     fill_color,
     casing_weight,
@@ -114,8 +121,8 @@ def _add_walk_network(
     """Ajoute le reseau pietonnier, contour gris et remplissage blanc fin."""
     if edges_gdf is None or len(edges_gdf) == 0:
         return
-    edges_json = _to_display(edges_gdf[["geometry"]], display_crs).to_json()
-    group = folium.FeatureGroup(name="Reseau pietonnier")
+    edges_json = _to_display(edges_gdf[["geometry"]], geographic_crs).to_json()
+    group = folium.FeatureGroup(name=group_name)
     folium.GeoJson(
         edges_json,
         style_function=lambda feature: {
@@ -136,15 +143,22 @@ def _add_walk_network(
 
 
 def _add_train_lines(
-    web_map, lines_gdf, display_crs, color, weight, dash_array, name_field
+    web_map,
+    lines_gdf,
+    geographic_crs,
+    group_name,
+    color,
+    weight,
+    dash_array,
+    name_field,
 ):
     """Ajoute les lignes de train en pointille noir, contexte cartographique."""
     if lines_gdf is None or len(lines_gdf) == 0:
         return
     lines_display = lines_gdf[[name_field, "geometry"]]
     folium.GeoJson(
-        _to_display(lines_display, display_crs).to_json(),
-        name="Lignes de train",
+        _to_display(lines_display, geographic_crs).to_json(),
+        name=group_name,
         style_function=lambda feature: {
             "color": color,
             "weight": weight,
@@ -192,7 +206,7 @@ def _pin(icon_class, color, size_px, icon_ratio):
 def _add_bubble_points(
     web_map,
     gdf,
-    display_crs,
+    geographic_crs,
     group_name,
     icon_class,
     color,
@@ -204,7 +218,7 @@ def _add_bubble_points(
     if gdf is None or len(gdf) == 0:
         return
     group = folium.FeatureGroup(name=group_name)
-    for _, row in _to_display(gdf, display_crs).iterrows():
+    for _, row in _to_display(gdf, geographic_crs).iterrows():
         name = str(row.get(name_field, "") or "")
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
@@ -217,63 +231,171 @@ def _add_bubble_points(
 def _add_service_markers(
     web_map,
     gdf,
-    display_crs,
+    geographic_crs,
     group_name,
     icon_for_row,
     color,
     service_labels,
     size_px,
     icon_ratio,
-    added=False,
+    popup_width,
 ):
     """Ajoute les services essentiels en reperes colores avec infobulle.
 
-    Un clic affiche le libelle du type de service et le nom de l'etablissement,
-    comme dans GMQ210. added distingue les services ajoutes des services existants.
+    Un clic affiche le libelle du type de service et le nom de l'etablissement, comme dans
+    GMQ210.
     """
     if gdf is None or len(gdf) == 0:
         return
     group = folium.FeatureGroup(name=group_name)
-    for _, row in _to_display(gdf, display_crs).iterrows():
+    for _, row in _to_display(gdf, geographic_crs).iterrows():
         service_type = row.get("service_type")
         label = service_labels.get(service_type, service_type)
-        if added:
-            title = f"Ajout, {label}"
-            detail = str(row.get("recommendation", "") or "")
-        else:
-            title = label
-            detail = str(row.get("name", "") or "")
-        popup_html = f"<b>{title}</b><br>{detail}" if detail else f"<b>{title}</b>"
+        detail = str(row.get("name", "") or "")
+        popup_html = f"<b>{label}</b><br>{detail}" if detail else f"<b>{label}</b>"
         folium.Marker(
             location=[row.geometry.y, row.geometry.x],
             icon=_pin(icon_for_row(row), color, size_px, icon_ratio),
-            tooltip=title,
-            popup=folium.Popup(popup_html, max_width=220),
+            tooltip=label,
+            popup=folium.Popup(popup_html, max_width=popup_width),
         ).add_to(group)
     group.add_to(web_map)
 
 
-def _add_residence_points(web_map, residences_gdf, service_types, visual_config):
+def _square(icon_class, color, size_px, icon_ratio, offset_px):
+    """Repere carre colore avec un pictogramme blanc, pour les elements retenus.
+
+    offset_px decale le carre a l'horizontale. Les secteurs d'adresses et de logement
+    tombent parfois sur la meme aire de diffusion, un decalage oppose garde alors les deux
+    pictogrammes visibles cote a cote.
+    """
+    glyph_size = int(size_px * icon_ratio)
+    html = (
+        f'<div style="width:{size_px}px;height:{size_px}px;background:{color};'
+        f"border:2px solid #ffffff;border-radius:15%;display:flex;"
+        f"align-items:center;justify-content:center;"
+        f'box-shadow:0 0 3px rgba(0,0,0,0.5);">'
+        f'<i class="fa-solid {icon_class}" '
+        f'style="color:#ffffff;font-size:{glyph_size}px;"></i></div>'
+    )
+    return folium.DivIcon(
+        html=html,
+        icon_size=(size_px, size_px),
+        icon_anchor=(size_px // 2 + offset_px, size_px // 2),
+    )
+
+
+def _add_sectors(
+    web_map, sectors_gdf, geographic_crs, group_name, icon_class, offset_px, vc
+):
+    """Ajoute des secteurs, polygone rempli colore par cote moyenne plus un carre au centroide.
+
+    Chaque secteur est la meilleure aire de diffusion d'une municipalite. Le polygone et le
+    carre prennent la couleur de la cote qualitative moyenne du secteur. Un clic affiche la
+    ville, l'aire, la cote moyenne sur 100, la cote qualitative et le nombre de points.
+    """
+    if sectors_gdf is None or len(sectors_gdf) == 0:
+        return
+    quality_colors = vc["quality_colors"]
+    default_color = vc["color_residence_default"]
+    group = folium.FeatureGroup(name=group_name)
+    display = _to_display(sectors_gdf, geographic_crs)
+    folium.GeoJson(
+        display[["mean_quality", "geometry"]].to_json(),
+        style_function=lambda feature: {
+            "fillColor": quality_colors.get(
+                feature["properties"]["mean_quality"], default_color
+            ),
+            "color": quality_colors.get(
+                feature["properties"]["mean_quality"], default_color
+            ),
+            "weight": vc["style_sector_outline_weight"],
+            "fillOpacity": vc["style_sector_fill_opacity"],
+        },
+    ).add_to(group)
+    for _, row in display.iterrows():
+        color = quality_colors.get(row["mean_quality"], default_color)
+        centroid = row.geometry.centroid
+        popup_html = (
+            f"<b>{group_name}</b><br>{row['municipality']}<br>"
+            f"Aire de diffusion, {row['ad_id']}<br>"
+            f"Cote moyenne, {row['mean_score_percent']}/100<br>"
+            f"Cote qualitative, {row['mean_quality']}<br>"
+            f"Nombre de points, {row['n_points']}"
+        )
+        folium.Marker(
+            location=[centroid.y, centroid.x],
+            icon=_square(
+                icon_class,
+                color,
+                vc["size_sector_marker"],
+                vc["size_icon_ratio"],
+                offset_px,
+            ),
+            tooltip=f"{group_name}, {row['municipality']}",
+            popup=folium.Popup(popup_html, max_width=vc["size_popup_sector"]),
+        ).add_to(group)
+    group.add_to(web_map)
+
+
+def _cluster_icon_script(vc):
+    """Fonction JavaScript qui colore un cluster selon la cote moyenne de ses points.
+
+    Chaque residence porte deja la couleur de sa cote qualitative. La fonction convertit
+    ces couleurs en niveaux, du meilleur au moins bon, fait la moyenne des points du
+    cluster et applique la couleur du niveau moyen. Le nombre de points reste affiche.
+    """
+    palette = list(vc["quality_colors"].values())
+    levels = {color: index for index, color in enumerate(palette)}
+    size_px = vc["size_cluster_marker"]
+    return f"""
+    function (cluster) {{
+        var levels = {json.dumps(levels)};
+        var palette = {json.dumps(palette)};
+        var markers = cluster.getAllChildMarkers();
+        var total = 0;
+        var counted = 0;
+        for (var i = 0; i < markers.length; i++) {{
+            var level = levels[markers[i].options.fillColor];
+            if (level !== undefined) {{
+                total += level;
+                counted += 1;
+            }}
+        }}
+        var color = "{vc["color_residence_default"]}";
+        if (counted > 0) {{
+            color = palette[Math.round(total / counted)];
+        }}
+        var html = '<div style="width:{size_px}px;height:{size_px}px;background:' + color
+            + ';border:2px solid #ffffff;border-radius:50%;display:flex;'
+            + 'align-items:center;justify-content:center;color:#ffffff;font-weight:bold;'
+            + 'text-shadow:0 0 3px rgba(0,0,0,0.9);box-shadow:0 0 3px rgba(0,0,0,0.5);">'
+            + markers.length + '</div>';
+        return new L.DivIcon({{
+            html: html,
+            className: "",
+            iconSize: new L.Point({size_px}, {size_px})
+        }});
+    }}
+    """
+
+
+def _add_residence_points(web_map, residences_gdf, service_types, vc, geographic_crs):
     """Ajoute les residences en points colores selon leur cote qualitative.
 
-    Un groupe de couche par cote qualitative permet d'activer ou de desactiver chaque
-    classe. Un clic affiche l'adresse, la cote sur 100, la cote qualitative et la
-    distance vers chaque service en kilometres, comme dans GMQ210.
+    Un seul cluster regroupe les points pour alleger la carte. Sa couleur suit la cote
+    moyenne des points qu'il contient. Un clic affiche l'adresse, la cote sur 100, la cote
+    qualitative et la distance vers chaque service en kilometres, comme dans GMQ210.
     """
-    quality_colors = visual_config["quality_colors"]
-    service_labels = visual_config["service_labels"]
-    default_color = visual_config["color_residence_default"]
-    outline_color = visual_config["color_residence_outline"]
-    radius = visual_config["style_residence_radius"]
-    weight = visual_config["style_residence_weight"]
-    fill_opacity = visual_config["style_residence_fill_opacity"]
-    groups = {
-        label: folium.FeatureGroup(name=f"Cote, {label}") for label in quality_colors
-    }
-    residences_display = _to_display(residences_gdf, visual_config["display_crs"])
-    for _, row in residences_display.iterrows():
+    quality_colors = vc["quality_colors"]
+    service_labels = vc["service_labels"]
+    default_color = vc["color_residence_default"]
+    cluster = MarkerCluster(
+        name=vc["layer_names"]["residences"],
+        icon_create_function=_cluster_icon_script(vc),
+    )
+    for _, row in _to_display(residences_gdf, geographic_crs).iterrows():
         quality = row["quality_label"]
-        color = quality_colors.get(quality, default_color)
         lines = [
             f"<b>{row.get('address', '')}</b>",
             f"Cote, {row['score_percent']}/100",
@@ -282,34 +404,33 @@ def _add_residence_points(web_map, residences_gdf, service_types, visual_config)
         for service_type in service_types:
             label = service_labels.get(service_type, service_type)
             distance = row.get(f"distance_{service_type}_km")
-            shown = "hors de portee" if distance is None else f"{distance} km"
+            shown = "hors de portée" if distance is None else f"{distance} km"
             lines.append(f"{label}, {shown}")
-        popup_html = "<br>".join(lines)
-        target = groups.get(quality)
-        if target is None:
-            continue
         folium.CircleMarker(
             location=[row.geometry.y, row.geometry.x],
-            radius=radius,
-            color=outline_color,
-            weight=weight,
+            radius=vc["style_residence_radius"],
+            color=vc["color_residence_outline"],
+            weight=vc["style_residence_weight"],
             fill=True,
-            fill_color=color,
-            fill_opacity=fill_opacity,
-            popup=folium.Popup(popup_html, max_width=250),
-        ).add_to(target)
-    for group in groups.values():
-        group.add_to(web_map)
+            fill_color=quality_colors.get(quality, default_color),
+            fill_opacity=vc["style_residence_fill_opacity"],
+            popup=folium.Popup(
+                "<br>".join(lines), max_width=vc["size_popup_residence"]
+            ),
+        ).add_to(cluster)
+    cluster.add_to(web_map)
 
 
 def _add_base_layers(
-    web_map, zone_gdf, municipalities_gdf, network_edges, water_gdf, vc
+    web_map, zone_gdf, municipalities_gdf, network_edges, water_gdf, vc, geographic_crs
 ):
     """Ajoute la riviere, le reseau, les limites municipales et la zone d'etude."""
+    names = vc["layer_names"]
     _add_river(
         web_map,
         water_gdf,
-        vc["display_crs"],
+        geographic_crs,
+        names["river"],
         vc["color_river"],
         vc["style_river_weight"],
         vc["style_river_fill_opacity"],
@@ -317,7 +438,8 @@ def _add_base_layers(
     _add_walk_network(
         web_map,
         network_edges,
-        vc["display_crs"],
+        geographic_crs,
+        names["walk_network"],
         vc["color_network_casing"],
         vc["color_network_fill"],
         vc["style_network_casing_weight"],
@@ -328,20 +450,22 @@ def _add_base_layers(
     _add_municipal_limits(
         web_map,
         municipalities_gdf,
-        vc["display_crs"],
+        geographic_crs,
+        names["municipal_limits"],
         vc["color_municipal_limits"],
         vc["style_municipal_limits_weight"],
     )
     _add_study_outline(
         web_map,
         zone_gdf,
-        vc["display_crs"],
+        geographic_crs,
+        names["study_outline"],
         vc["color_study_outline"],
         vc["style_study_outline_weight"],
     )
 
 
-def s0_map(
+def lever_map(
     zone_gdf,
     municipalities_gdf,
     residences_gdf,
@@ -352,54 +476,69 @@ def s0_map(
     stations_gdf,
     lines_gdf,
     water_gdf,
+    address_sectors,
+    site_sectors,
     visual_config,
+    geographic_crs,
     path,
     station_field="nom_gare",
     line_field="nom_train",
     logger=None,
 ):
-    """Carte de l'accessibilite actuelle S0, residences colorees par cote.
+    """Carte du levier, residences en clusters plus les meilleurs secteurs mis en evidence.
 
-    Les couches de transport ne sont affichees que sur la carte de verification,
-    l'appelant passe alors les arrets, gares et lignes, sinon None. station_field et
-    line_field viennent de config["transit"], nom des champs des couches exo.
+    Elle reprend tous les elements de la carte d'accessibilite, residences colorees par cote
+    et regroupees en clusters, reseau, services, riviere et limites. La carte transport
+    ajoute les arrets, les gares et les lignes, l'appelant passe alors ces couches, sinon
+    None. La meilleure aire de diffusion d'adresses existantes et la meilleure aire ou
+    implanter des logements de chaque municipalite ressortent en polygones remplis colores
+    par leur cote moyenne, avec un carre pictogramme au centroide.
     """
     vc = visual_config
-    web_map = _base_map(zone_gdf, vc)
+    names = vc["layer_names"]
+    icons = vc["service_icons"]
+    icon_ratio = vc["size_icon_ratio"]
+    offset = vc["size_sector_marker_offset"]
+    web_map = _base_map(zone_gdf, vc, geographic_crs)
     _add_base_layers(
-        web_map, zone_gdf, municipalities_gdf, network_edges, water_gdf, vc
+        web_map,
+        zone_gdf,
+        municipalities_gdf,
+        network_edges,
+        water_gdf,
+        vc,
+        geographic_crs,
     )
     _add_train_lines(
         web_map,
         lines_gdf,
-        vc["display_crs"],
+        geographic_crs,
+        names["train_lines"],
         vc["color_stations"],
         vc["style_train_line_weight"],
         vc["style_train_line_dash"],
         line_field,
     )
 
-    _add_residence_points(web_map, residences_gdf, service_types, vc)
+    _add_residence_points(web_map, residences_gdf, service_types, vc, geographic_crs)
 
-    icons = vc["service_icons"]
-    labels = vc["service_labels"]
-    icon_ratio = vc["size_icon_ratio"]
     _add_service_markers(
         web_map,
         services_gdf,
-        vc["display_crs"],
-        "Services essentiels",
+        geographic_crs,
+        names["services"],
         lambda row: icons.get(row["service_type"], "fa-circle"),
         vc["color_services"],
-        labels,
+        vc["service_labels"],
         vc["size_service_marker"],
         icon_ratio,
+        vc["size_popup_service"],
     )
     _add_bubble_points(
         web_map,
         stops_gdf,
-        vc["display_crs"],
-        "Arrets d'autobus",
+        geographic_crs,
+        names["stops"],
         vc["icon_stop"],
         vc["color_stops"],
         "stop_name",
@@ -409,70 +548,31 @@ def s0_map(
     _add_bubble_points(
         web_map,
         stations_gdf,
-        vc["display_crs"],
-        "Gares de train",
+        geographic_crs,
+        names["stations"],
         vc["icon_station"],
         vc["color_stations"],
         station_field,
         vc["size_station_bubble"],
         icon_ratio,
     )
-    folium.LayerControl(collapsed=False).add_to(web_map)
-    _save(web_map, path, logger)
-
-
-def s1_map(
-    zone_gdf,
-    municipalities_gdf,
-    residences_gdf,
-    service_types,
-    network_edges,
-    services_gdf,
-    new_sites_gdf,
-    water_gdf,
-    visual_config,
-    path,
-    logger=None,
-):
-    """Carte d'un scenario S1, residences recolorees et services ajoutes.
-
-    Le scenario S1 porte sur l'acces a pied seulement, aucune couche de transport
-    n'apparait donc ici. Les services existants restent en reperes mauve fonce, les
-    services ajoutes sont en reperes bleu cadet un peu plus grands.
-    """
-    vc = visual_config
-    web_map = _base_map(zone_gdf, vc)
-    _add_base_layers(
-        web_map, zone_gdf, municipalities_gdf, network_edges, water_gdf, vc
-    )
-
-    _add_residence_points(web_map, residences_gdf, service_types, vc)
-
-    icons = vc["service_icons"]
-    labels = vc["service_labels"]
-    icon_ratio = vc["size_icon_ratio"]
-    _add_service_markers(
+    _add_sectors(
         web_map,
-        services_gdf,
-        vc["display_crs"],
-        "Services essentiels existants",
-        lambda row: icons.get(row["service_type"], "fa-circle"),
-        vc["color_services"],
-        labels,
-        vc["size_service_marker"],
-        icon_ratio,
+        address_sectors,
+        geographic_crs,
+        names["address_sectors"],
+        vc["icon_best_address"],
+        offset,
+        vc,
     )
-    _add_service_markers(
+    _add_sectors(
         web_map,
-        new_sites_gdf,
-        vc["display_crs"],
-        "Services ajoutes (S1)",
-        lambda row: icons.get(row["service_type"], "fa-circle"),
-        vc["color_new_sites"],
-        labels,
-        vc["size_new_site_marker"],
-        icon_ratio,
-        added=True,
+        site_sectors,
+        geographic_crs,
+        names["site_sectors"],
+        vc["icon_new_residence"],
+        -offset,
+        vc,
     )
     folium.LayerControl(collapsed=False).add_to(web_map)
     _save(web_map, path, logger)

@@ -1,8 +1,10 @@
 """Graphiques statiques du projet avec matplotlib.
 
-Chaque fonction ecrit une figure PNG dans le dossier de sorties. Les textes des
-figures sont en francais comme tout le contenu affiche du projet. Toutes les
-couleurs, tailles et textes viennent de la section visualization de config.yaml.
+Chaque fonction ecrit une figure PNG dans le dossier de sorties. Les figures comparent
+les aines et le reste de la population, cote a cote, chacun avec son propre ordre de
+preference. Les textes des figures sont en francais comme tout le contenu affiche du
+projet. Toutes les couleurs, tailles et textes viennent de la section visualization de
+config.yaml.
 """
 
 from __future__ import annotations
@@ -36,18 +38,58 @@ def _zoom_limits(values, margin):
     return low, high
 
 
-def gain_curve_chart(gains_df, path, visual_config, weightings, logger=None):
-    """Courbes de gain, part couverte selon le nombre de services ajoutes.
+def coverage_chart(summary, config, path, logger=None):
+    """Deux panneaux de couverture a pied, aines et reste, chacun par son importance.
 
-    Un panneau par ponderation, cote a cote dans l'ordre de weightings. Chaque
-    panneau garde sa propre echelle verticale, car les paliers reposent sur des
-    seuils, des poids et des importances propres a la population, les hauteurs ne
-    se comparent donc pas d'un panneau a l'autre. gains_df contient les colonnes
-    n_services, weighting et covered_percent.
+    Chaque panneau range les services du plus important au moins important pour le groupe,
+    comme l'ordre des infobulles des cartes. summary vient de coverage_summary.
     """
-    vc = visual_config
+    vc = config["visualization"]
+    labels = vc["service_labels"]
     weighting_labels = vc["weighting_labels"]
-    present = [w for w in weightings if (gains_df["weighting"] == w).any()]
+    groups = [
+        (
+            "seniors",
+            config["importance_seniors"],
+            config["optimization"]["coverage_threshold_seniors_m"],
+        ),
+        (
+            "rest",
+            config["importance_rest"],
+            config["optimization"]["coverage_threshold_rest_m"],
+        ),
+    ]
+    width, height = vc["chart_figsize_bar"]
+    figure, axes = plt.subplots(1, 2, figsize=(width * 2, height), layout="constrained")
+    for axis, (population, importance, threshold) in zip(axes, groups):
+        subset = summary[
+            (summary["population"] == population)
+            & (summary["mode"] == "marche")
+            & (summary["threshold_m"] == threshold)
+        ].sort_values(
+            "service_type",
+            key=lambda col: col.map(lambda t: importance.get(t, 0.0)),
+            kind="stable",
+        )
+        names = subset["service_type"].map(lambda t: labels.get(t, t))
+        axis.barh(names, subset["covered_percent"], color=vc["color_chart_bar"])
+        axis.set_xlabel(vc["label_chart_bar_xaxis"])
+        axis.set_title(weighting_labels.get(population, population))
+        axis.grid(True, axis="x", alpha=vc["chart_grid_alpha"])
+    figure.suptitle(vc["title_coverage"])
+    _save(figure, path, vc["chart_dpi"], logger)
+
+
+def gain_curve_chart(gains_df, config, path, logger=None):
+    """Deux panneaux de gain, aines et reste, part couverte selon le nombre d'ajouts.
+
+    Un panneau par groupe, chacun garde sa propre echelle verticale car les seuils et les
+    importances different. La courbe sert a la validation, le gain devient negligeable au
+    dela de quelques ajouts. gains_df contient n_services, group et covered_percent.
+    """
+    vc = config["visualization"]
+    weighting_labels = vc["weighting_labels"]
+    present = [w for w in ("seniors", "rest") if (gains_df["group"] == w).any()]
     width, height = vc["chart_figsize_gain"]
     n_panels = max(len(present), 1)
     figure, axes = plt.subplots(
@@ -58,11 +100,9 @@ def gain_curve_chart(gains_df, path, visual_config, weightings, logger=None):
         layout="constrained",
     )
     for axis, weighting in zip(axes[0], present):
-        group = gains_df[gains_df["weighting"] == weighting].sort_values("n_services")
+        group = gains_df[gains_df["group"] == weighting].sort_values("n_services")
         axis.plot(
-            group["n_services"],
-            group["covered_percent"],
-            marker=vc["chart_marker"],
+            group["n_services"], group["covered_percent"], marker=vc["chart_marker"]
         )
         axis.set_ylim(
             *_zoom_limits(group["covered_percent"].tolist(), vc["chart_zoom_margin"])
@@ -72,28 +112,4 @@ def gain_curve_chart(gains_df, path, visual_config, weightings, logger=None):
         axis.set_title(weighting_labels.get(weighting, weighting))
         axis.grid(True, alpha=vc["chart_grid_alpha"])
     figure.suptitle(vc["title_chart_gain"])
-    _save(figure, path, vc["chart_dpi"], logger)
-
-
-def s0_coverage_chart(
-    summary_df, service_labels, importance, title, path, visual_config, logger=None
-):
-    """Diagramme en barres de la couverture S0 par type de service.
-
-    summary_df contient les colonnes service_type et covered_percent. Les services
-    sont ranges par importance pour la population visee, le plus important en haut,
-    comme l'ordre des infobulles des cartes. Les noms sont affiches en francais.
-    """
-    vc = visual_config
-    subset = summary_df.sort_values(
-        "service_type",
-        key=lambda col: col.map(lambda t: importance.get(t, 0.0)),
-        kind="stable",
-    ).copy()
-    subset["label"] = subset["service_type"].map(lambda t: service_labels.get(t, t))
-    figure, axis = plt.subplots(figsize=tuple(vc["chart_figsize_bar"]))
-    axis.barh(subset["label"], subset["covered_percent"], color=vc["color_chart_bar"])
-    axis.set_xlabel(vc["label_chart_bar_xaxis"])
-    axis.set_title(title)
-    axis.grid(True, axis="x", alpha=vc["chart_grid_alpha"])
     _save(figure, path, vc["chart_dpi"], logger)
