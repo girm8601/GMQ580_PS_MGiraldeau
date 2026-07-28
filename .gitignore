@@ -20,8 +20,8 @@ data/processed/*
 logs/
 *.log
 
-# Cartes interactives volumineuses (regenerees par main.py)
-outputs/maps/*.html
+# Les cartes interactives de outputs/maps sont volontairement versionnees, elles sont
+# publiees telles quelles sur GitHub Pages (voir report.maps_base_url dans config.yaml).
 
 # Cache des requetes OSMnx vers l'API Overpass (regenerable)
 cache/
