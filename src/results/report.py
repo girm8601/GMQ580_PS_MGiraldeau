@@ -103,10 +103,12 @@ def _title_page(pdf, config):
     _multi(pdf, report["title"], 10, "C")
     pdf.ln(8)
     pdf.set_font("Helvetica", "", report["font_size_subtitle"])
+    # Date locale du poste, obtenue depuis un instant date pour rester sans ambiguite.
+    today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
     lines = [
         report["course"],
         report["author"],
-        _french_date(datetime.date.today()),
+        _french_date(today),
     ]
     for line in lines:
         _multi(pdf, line, 8, "C")

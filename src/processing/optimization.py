@@ -32,8 +32,7 @@ def distance_matrix(
         reached = distances_from_sources(graph, [candidate_node], cutoff=threshold_m)
         for node, distance in reached.items():
             for i in demand_index.get(node, ()):
-                if distance < matrix[i, j]:
-                    matrix[i, j] = distance
+                matrix[i, j] = min(matrix[i, j], distance)
     return matrix
 
 

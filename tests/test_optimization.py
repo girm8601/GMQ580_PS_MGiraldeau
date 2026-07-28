@@ -6,7 +6,7 @@ import pytest
 
 spopt = pytest.importorskip("spopt")
 
-from src.processing.optimization import solve_mclp  # noqa: E402
+from src.processing.optimization import solve_mclp
 
 # Trois candidats, quatre points de demande, seuil de 800 m.
 # Le candidat 0 couvre les demandes 0 et 1, le candidat 1 couvre la demande 2,

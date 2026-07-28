@@ -24,11 +24,9 @@ def _is_out_of_reach(distance_m):
     """Indique qu'une distance est absente ou infinie, donc hors de portee."""
     if distance_m is None:
         return True
-    if isinstance(distance_m, float) and (
+    return isinstance(distance_m, float) and (
         math.isnan(distance_m) or math.isinf(distance_m)
-    ):
-        return True
-    return False
+    )
 
 
 def band_label(distance_m, bands):

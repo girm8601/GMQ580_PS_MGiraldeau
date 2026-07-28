@@ -13,12 +13,11 @@ Lancement, python download_data.py
 
 from __future__ import annotations
 
-from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
-
 import os
 import sys
 
 from config_loader import load_config
+from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
 from src.extraction.reference_layers import load_municipalities
 from src.extraction.services import flatten_service_tags
 from src.logger import setup_logger

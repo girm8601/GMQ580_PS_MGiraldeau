@@ -68,7 +68,7 @@ def coverage_chart(summary, config, path, logger=None):
             & (summary["threshold_m"] == threshold)
         ].sort_values(
             "service_type",
-            key=lambda col: col.map(lambda t: importance.get(t, 0.0)),
+            key=lambda col, weights=importance: col.map(lambda t: weights.get(t, 0.0)),
             kind="stable",
         )
         names = subset["service_type"].map(lambda t: labels.get(t, t))

@@ -58,7 +58,7 @@ def test_yes_by_land_use():
 
 def test_yes_without_land_use_layer():
     """Sans couche de sol fournie, le comportement de GMQ210 est conserve."""
-    kept, excluded = filter_residential(make_buildings(), BUILDINGS_CONFIG, None)
+    kept, _ = filter_residential(make_buildings(), BUILDINGS_CONFIG, None)
     assert len(kept[kept["building"] == "yes"]) == 2
 
 

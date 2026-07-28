@@ -11,13 +11,12 @@ les couches OSM avec download_data.py.
 
 from __future__ import annotations
 
-from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
-
 import os
 
 import geopandas as gpd
 
 from config_loader import load_config
+from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
 from src.extraction.buildings import load_residences
 from src.extraction.census import load_census_profile
 from src.extraction.network import load_walk_graph
