@@ -1,146 +1,110 @@
-# Accessibilité piétonne aux services essentiels et optimisation pour les aînés à Beloeil, McMasterville, Mont-Saint-Hilaire et Otterburn Park
+# Où vieillir à pied dans la Vallée du Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés
 **Équipe.** Mylène Giraldeau
 
 ![Tests](https://github.com/girm8601/GMQ580_PS_MGiraldeau/actions/workflows/ci.yml/badge.svg)
 
 ## Problématique
-L'accès aux services essentiels à pied est un enjeu d'autonomie et d'inclusion pour les résidents qui ne disposent pas d'un accès facile à l'automobile. Les personnes âgées de 65 ans et plus forment le groupe vulnérable candidat principal. Plusieurs cessent de conduire tout en demeurant capables de marcher sur de courtes distances.
+L'accès à pied aux services essentiels est un enjeu d'autonomie. Les personnes de 65 ans et plus sont le groupe vulnérable principal. Plusieurs cessent de conduire tout en marchant encore sur de courtes distances. L'environnement bâti du quartier influence directement leurs déplacements actifs (Cerin et al., 2017). L'Organisation mondiale de la Santé (2007) fait d'ailleurs de la proximité des services un critère central des villes amies des aînés.
 
-Le projet porte sur les quatre municipalités riveraines contiguës de la Vallée du Richelieu. Beloeil et McMasterville sont sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est, séparées par la rivière Richelieu franchissable seulement aux ponts.
+Le projet mesure cet accès à l'échelle du bâtiment, pour chaque résidence des quatre municipalités. **Neuf types de services essentiels sont analysés**, épicerie, pharmacie, santé, dépanneur, banque, dentiste, vétérinaire, école et garderie. La section Données les définit. Le transport collectif n'en fait pas partie. C'est un moyen d'atteindre ces services, pas un service. Il forme le deuxième mode de déplacement après la marche.
 
-L'étude se concentre sur l'amélioration de l'accès à pied. La marche est le mode que certaines personnes âgées privilégient et qui mérite le plus d'être renforcé, car elles ne veulent pas toujours avoir recours à l'autobus. Le réseau de transport collectif d'exo sert seulement à vérifier si le besoin d'ajouter des services est réel une fois le transport pris en compte. Une carte montre cet apport. Elle confirme que le transport dessert déjà bien l'accès, ce qui justifie de centrer l'optimisation sur la marche.
+Le projet suit trois volets. Le **diagnostic d'équité** compare les aînés au reste de la population et montre que leurs besoins diffèrent. La **validation** écarte deux pistes. L'ajout de nouveaux services rapporte trop peu, et l'effet de barrière de la rivière est négligeable. Le **levier** retient la solution. Il recommande dans chaque ville le meilleur secteur d'adresses déjà existantes et le meilleur secteur où implanter du logement.
 
-Le projet évalue si les résidents les plus dépendants de la marche disposent d'un accès équitable aux services essentiels. Il détermine ensuite la nature et la localisation des nouveaux services à implanter pour maximiser la couverture. Il reprend et étend, avec l'accord de l'enseignant, le projet de session du cours GMQ210.
-
-Les résultats concernent les villes visées et les décideurs publics, communautaires et privés. Le projet se limite à un diagnostic prospectif. L'implantation réelle revient aux décideurs. Il n'aborde ni les horaires d'ouverture ni un indice de vulnérabilité multicritère.
+Les résultats visent les municipalités et les décideurs publics, communautaires et privés. Le projet reprend et étend l'approche piétonne du cours GMQ210, avec l'accord de l'enseignant. Il se limite au diagnostic et aux recommandations, l'implantation revient aux décideurs. Il n'aborde ni les horaires d'ouverture ni un indice de vulnérabilité multicritère.
 
 ## Zone d'étude
-Le territoire couvre les quatre municipalités riveraines contiguës. Beloeil et McMasterville sont sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est.
+Quatre municipalités riveraines contiguës de la Vallée du Richelieu. Beloeil et McMasterville sont sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est. La rivière les sépare et n'est franchissable qu'aux ponts. Le territoire reste donc continu et de taille comparable, tout en permettant de tester un effet de barrière.
 
-La demande des personnes âgées est diffusée par aire de diffusion du Recensement 2021. Les distances sont mesurées sur le réseau piétonnier. La demande, les services, les résidences, le réseau et le transport sont tous mesurés sur l'ensemble de la zone, sans zone tampon.
-
-Les services se trouvent surtout au cœur des villes et non aux limites. Quelques services situés juste au-delà des limites ne sont donc pas comptés. Cet effet reste faible et il est noté comme une limite du projet.
+Il est traité sans zone tampon. La demande est diffusée par aire de diffusion du Recensement 2021. C'est la plus petite unité pour laquelle toutes les données du recensement sont diffusées, de 400 à 700 habitants (Statistique Canada, 2021). Les distances sont mesurées sur le réseau piétonnier. Quelques services situés juste au-delà des limites ne sont pas comptés. L'effet reste faible car les services se concentrent au cœur des villes.
 
 ## Données
+Chaque source sert à une chose précise.
+
+- **Ce qui définit les services essentiels.** Les points d'intérêt d'OpenStreetMap, filtrés par les étiquettes du premier tableau. C'est la seule source qui décide de la présence d'un service.
+- **Ce qui définit l'accès.** Le réseau piétonnier porte toutes les distances de marche. Les arrêts d'autobus et les gares ajoutent le deuxième mode. Les bâtiments et terrains résidentiels donnent le point de départ de chaque déplacement.
+- **Ce qui définit la demande et le contexte.** Le recensement et les aires de diffusion répartissent les aînés et le reste de la population. Les limites municipales rattachent chaque secteur à sa ville. Les terrains commerciaux et les terrains à développer servent de sites candidats. Les lignes de train et la rivière sont des repères cartographiques.
+
+Un service est retenu s'il répond à un besoin courant, s'il se fréquente de façon répétée dans l'année et s'il est bien recensé dans OpenStreetMap.
+
+| Service essentiel | Étiquettes OpenStreetMap | Rôle pour la population |
+|-------------------|--------------------------|-------------------------|
+| Épicerie | `shop=supermarket` | Achats alimentaires, la sortie la plus fréquente |
+| Pharmacie | `amenity=pharmacy`, `healthcare=pharmacy` | Médicaments et suivi des soins |
+| Santé | `amenity` hôpital, clinique et médecin, `healthcare` équivalent | Consultation médicale de proximité |
+| Dépanneur | `shop=convenience` | Achat de dépannage à pied |
+| Banque | `amenity=bank` | Opérations encore faites au comptoir |
+| Dentiste | `amenity=dentist`, `healthcare=dentist` | Soins réguliers deux fois par an |
+| Vétérinaire | `amenity=veterinary` | Soins des animaux de compagnie |
+| École | `amenity=school` | Service structurant pour les familles |
+| Garderie | `amenity=kindergarten`, `amenity=childcare` | Service structurant pour les jeunes parents |
+
+L'école et la garderie sont conservées même si les aînés les fréquentent peu. Le diagnostic compare en effet les deux groupes sur les mêmes services. C'est le poids d'importance, propre à chaque groupe, qui traduit la différence d'usage.
 
 | Source | Format | CRS | Accès |
 |--------|--------|-----|-------|
-| Réseau piétonnier (OpenStreetMap) | Graphe (GraphML) | EPSG:2950 (MTM 8) | Extrait via [OSMnx](https://osmnx.readthedocs.io/en/stable/), reprojeté depuis EPSG:4326 |
-| Points d'intérêt, services essentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquettes `amenity`, `shop`, `healthcare`), reprojeté depuis EPSG:4326 |
-| Bâtiments résidentiels (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquette `building`), reprojeté depuis EPSG:4326 |
-| Terrains commerciaux (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8) | Extrait via OSMnx (étiquette `landuse=commercial`), reprojeté depuis EPSG:4326 |
-| Population et aînés de 65 ans et plus par aire de diffusion | CSV tabulaire | Aucun (table jointe par code d'AD) | [Statistique Canada, Recensement 2021 (profil)](https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/download-telecharger.cfm?Lang=F) |
-| Limites des aires de diffusion | Shapefile | EPSG:2950 (MTM 8), reprojeté depuis EPSG:3347 | [Statistique Canada, limites 2021](https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-fra.cfm?year=21) |
-| Limites municipales | Shapefile | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4269 | [Données Québec, découpages administratifs](https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs/resource/b368d470-71d6-40a2-8457-e4419de2f9c0) |
-| Utilisation du sol (contraintes territoriales) | Vectoriel (Shapefile) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:32188 | [CMM, utilisation du sol 2022](https://observatoire.cmm.qc.ca/produits/donnees-georeferencees/#utilisation_du_sol) |
-| Arrêts du réseau d'autobus (exo, Vallée du Richelieu) | GTFS (fichiers texte) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [exo, données ouvertes (GTFS)](https://exo.quebec/fr/a-propos/donnees-ouvertes) |
-| Gares de train (exo) | GeoJSON (points) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [Données Québec, gares de train exo](https://www.donneesquebec.ca/recherche/dataset/gares-de-train-exo/resource/8c169002-866c-40e8-babd-2be7186cb17c) |
-| Lignes de train (exo) | GeoJSON (lignes) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | [Données Québec, lignes de train exo](https://www.donneesquebec.ca/recherche/dataset/lignes-de-train-exo/resource/0f7d6393-e43e-48b3-ab8c-a3d48b36cac6) |
-| Plans d'eau, rivière Richelieu (OpenStreetMap) | Vectoriel (GeoPackage) | EPSG:2950 (MTM 8), reprojeté depuis EPSG:4326 | Extrait via OSMnx (étiquette `natural=water`), contexte cartographique |
+| Réseau piétonnier (OpenStreetMap) | Graphe GraphML | EPSG:2950, depuis EPSG:4326 | Extrait via [OSMnx](https://osmnx.readthedocs.io/en/stable/) |
+| Services essentiels (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, étiquettes du tableau ci-dessus |
+| Bâtiments résidentiels (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, étiquette `building` |
+| Terrains résidentiels (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, `landuse=residential`, valide les bâtiments `yes` |
+| Terrains commerciaux (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, `landuse` commercial et retail, sites candidats de services |
+| Terrains à développer (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, `landuse` brownfield, greenfield et construction, sites candidats de logement |
+| Plans d'eau (OpenStreetMap) | GeoPackage | EPSG:2950, depuis EPSG:4326 | OSMnx, `natural=water`, contexte cartographique |
+| Population et aînés par aire de diffusion | CSV | Aucun, table jointe par code d'AD | [Statistique Canada, Recensement 2021](https://www12.statcan.gc.ca/census-recensement/2021/dp-pd/prof/details/download-telecharger.cfm?Lang=F) |
+| Limites des aires de diffusion | Shapefile | EPSG:2950, depuis EPSG:3347 | [Statistique Canada, limites 2021](https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-fra.cfm?year=21) |
+| Limites municipales | Shapefile | EPSG:2950, depuis EPSG:4269 | [Données Québec, découpages administratifs](https://www.donneesquebec.ca/recherche/dataset/decoupages-administratifs/resource/b368d470-71d6-40a2-8457-e4419de2f9c0) |
+| Arrêts d'autobus (exo, Vallée du Richelieu) | GTFS | EPSG:2950, depuis EPSG:4326 | [exo, données ouvertes](https://exo.quebec/fr/a-propos/donnees-ouvertes) |
+| Gares de train (exo) | GeoJSON | EPSG:2950, depuis EPSG:4326 | [Données Québec, gares exo](https://www.donneesquebec.ca/recherche/dataset/gares-de-train-exo/resource/8c169002-866c-40e8-babd-2be7186cb17c) |
+| Lignes de train (exo) | GeoJSON | EPSG:2950, depuis EPSG:4326 | [Données Québec, lignes exo](https://www.donneesquebec.ca/recherche/dataset/lignes-de-train-exo/resource/0f7d6393-e43e-48b3-ab8c-a3d48b36cac6) |
 
-Toutes les couches sont ramenées au CRS cible commun EPSG:2950 (NAD83(CSRS) / MTM zone 8) avant analyse. Les données brutes ne sont pas versionnées. Elles sont régénérées par `download_data.py` (voir `.gitignore`).
+Toutes les couches sont ramenées au CRS cible commun EPSG:2950 avant analyse, soit NAD83(CSRS) / MTM zone 8. Les données brutes ne sont pas versionnées. `download_data.py` régénère les couches OpenStreetMap, les autres se téléchargent depuis les liens ci-dessus.
 
 ## Modèle de données
 Ce projet n'utilise pas de serveur de base de données.
 
 ## Pipeline de traitement
-**Structure du projet évolutive.** L'arborescence suit le principe d'un module pour une responsabilité et reprend les catégories du cours. Elle peut évoluer en cours de route. Des modules très courts et toujours modifiés ensemble peuvent être fusionnés, et de nouveaux peuvent être ajoutés si une étape se précise. Le fichier `main.py` orchestre seulement, tout le traitement est délégué aux modules de `src`.
-
-Le traitement suit une chaîne séquentielle et reproductible. Une cote sur 100 est calculée pour chaque résidence à partir de la distance de marche vers chaque type de service, comme dans GMQ210. Un indicateur de couverture des aînés par aire de diffusion pilote l'optimisation. Le réseau de transport collectif fixe sert seulement à produire une carte S0 de vérification, il n'entre pas dans l'optimisation. L'optimisation par couverture maximale détermine à la fois où ajouter des services et de quels types.
+L'arborescence suit le principe d'un module pour une responsabilité. `main.py` orchestre seulement, tout le traitement est délégué aux modules de `src`.
 
 ```mermaid
 flowchart TD
-    A["Données ouvertes<br/>OSM, Recensement 2021 (StatCan), Données Québec, exo, CMM"]
-
-    subgraph P1["1. Acquisition et préparation"]
-        B["Acquisition des données"]
-        T["Réseau de transport collectif exo<br/>arrêts d'autobus (GTFS), gares et lignes de train"]
-        C["Vérification et contrôle qualité"]
-        D["Validation de la franchissabilité<br/>des ponts dans le graphe"]
-        E["Délimitation de la zone d'étude<br/>les quatre municipalités riveraines"]
-    end
-
-    subgraph P2["2. Analyse d'accessibilité (état actuel, S0)"]
-        F["Réseau piétonnier, distances de marche<br/>(Dijkstra)"]
-        W["Importance des services<br/>deux jeux de poids, aînés et population générale"]
-        G["Cote d'accessibilité sur 100<br/>par résidence"]
-        I["Demande pondérée par la vulnérabilité<br/>(aînés répartis par aire de diffusion)"]
-        H["Indicateur de couverture<br/>des résidents vulnérables"]
-        TA["Carte de vérification<br/>accès à pied avec le réseau fixe"]
-    end
-
-    subgraph P3["3. Optimisation (scénario S1, marche)"]
-        J["Définition et filtrage des sites candidats<br/>terrains commerciaux CMM croisés avec OSM"]
-        K["Optimisation par couverture maximale<br/>où et quel type, n de 1 à 10"]
-        L["Analyse de sensibilité d'équité<br/>aînés ou population totale"]
-    end
-
-    subgraph P4["4. Résultats et diffusion"]
-        M["Gains de couverture (S0 et S1)<br/>et effet de barrière de la rivière"]
-        N["Visualisation<br/>cartes interactives, courbe de gain"]
-        O["Rapport écrit et présentation orale"]
-    end
-
-    A -->|"osmnx, pandas"| B
-    A -->|"geopandas, pandas"| T
-    B --> C
-    T --> C
-    C -->|"networkx"| D
-    D -->|"geopandas"| E
-    E -->|"networkx, Dijkstra"| F
-    E -->|"pandas, geopandas"| I
-    F --> G
-    W --> G
-    F --> TA
-    T --> TA
-    G --> H
-    I --> H
-    H -->|"geopandas"| J
-    J -->|"spopt, PySAL"| K
-    W --> K
-    K --> L
-    K --> M
-    L --> M
-    M -->|"folium, matplotlib"| N
-    N --> O
+    A[Donnees ouvertes] -->|osmnx, geopandas, pandas| B[Acquisition]
+    B -->|reprojection EPSG:2950, audit qualite| C[Pretraitement]
+    C -->|networkx, Dijkstra| D[Reseau pietonnier et distances de marche]
+    D -->|cote sur 100, aines contre reste de la population| E[Diagnostic d'equite]
+    E -->|spopt, effet de barriere| F[Validation des pistes ecartees]
+    F -->|agregation par aire de diffusion| G[Levier, secteurs d'adresses et de sites]
+    G -->|folium, MarkerCluster| H[Cartes interactives et tableaux]
+    H -->|matplotlib, fpdf2| I[Rapport PDF et presentation]
 
     style A fill:#EEEDFE,stroke:#534AB7,color:#26215C
     style B fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-    style T fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style C fill:#E1F5EE,stroke:#0F6E56,color:#04342C
     style D fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-    style E fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    style E fill:#E6F1FB,stroke:#185FA5,color:#042C53
     style F fill:#E6F1FB,stroke:#185FA5,color:#042C53
-    style W fill:#E6F1FB,stroke:#185FA5,color:#042C53
     style G fill:#E6F1FB,stroke:#185FA5,color:#042C53
-    style TA fill:#E6F1FB,stroke:#185FA5,color:#042C53
-    style H fill:#E6F1FB,stroke:#185FA5,color:#042C53
-    style I fill:#E6F1FB,stroke:#185FA5,color:#042C53
-    style J fill:#E8EEF9,stroke:#3B53A4,color:#1B244F
-    style K fill:#E8EEF9,stroke:#3B53A4,color:#1B244F,stroke-width:2px
-    style L fill:#E8EEF9,stroke:#3B53A4,color:#1B244F
-    style M fill:#FAEEDA,stroke:#854F0B,color:#412402
-    style N fill:#FAEEDA,stroke:#854F0B,color:#412402
-    style O fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    style H fill:#FAEEDA,stroke:#854F0B,color:#412402
+    style I fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
 ```
 
+**Ce que fait chaque case.**
+- **A à C, acquisition et prétraitement.** `download_data.py` régénère les couches OpenStreetMap et `src/extraction` lit les autres sources. Suivent la reprojection vers EPSG:2950, l'audit de qualité, la correction des géométries et la répartition de la demande par aire de diffusion.
+- **D, distances de marche.** Chaque résidence et chaque service sont accrochés au nœud le plus proche du graphe. Dijkstra donne la distance réelle vers le service le plus proche de chaque type. Les arrêts d'autobus et les gares servent ici. Ils ouvrent un second chemin, marcher jusqu'à un arrêt puis marcher de l'arrêt vers le service. Ce chemin n'est retenu que s'il bat la marche directe et si les deux marches respectent le seuil du groupe.
+- **E et F, diagnostic et validation.** Cote sur 100 par résidence et comparaison des deux groupes. Puis couverture maximale pour l'ajout de services. L'effet de barrière est mesuré en retirant les liens qui traversent les ponts.
+- **G, levier.** Agrégation des adresses notées et des terrains à développer par aire de diffusion. La meilleure aire de chaque municipalité est ensuite retenue.
+- **H et I, diffusion.** Deux cartes folium, les tableaux CSV et le rapport PDF. Les lignes de train n'interviennent qu'ici, comme repère cartographique.
+
 ## Librairies principales
-- **osmnx**, téléchargement et modélisation du réseau piétonnier et des points d'intérêt d'OpenStreetMap.
-- **networkx**, plus courts chemins avec l'algorithme de Dijkstra pour mesurer les distances réelles de marche.
-- **geopandas** et **pandas**, manipulation des données géospatiales et tabulaires, lecture des fichiers GTFS et GeoJSON, jointures et reprojections.
-- **shapely**, construction et manipulation des géométries vectorielles.
-- **pyproj**, reprojection des couches vers le CRS cible EPSG:2950.
-- **rtree**, index spatial qui accélère les jointures spatiales.
-- **numpy**, calculs de la matrice de distances et des poids de demande.
-- **mapclassify**, classification des valeurs pour les cartes.
-- **spopt (PySAL)** et **pulp**, modèle de localisation-allocation à couverture maximale et solveur d'optimisation.
-- **folium**, cartes d'accessibilité interactives avant et après optimisation.
-- **matplotlib**, graphiques de performance, dont la courbe de rendement de l'ajout de 1 à 10 services.
-- **pyyaml**, lecture du fichier de configuration `config.yaml`.
-- **pytest** et **pytest-cov**, tests unitaires des fonctions critiques et mesure de couverture, exécutés en intégration continue.
+- **osmnx**, téléchargement du réseau, des points d'intérêt et des couches d'usage du sol d'OpenStreetMap (Boeing, 2017).
+- **networkx**, plus courts chemins avec l'algorithme de Dijkstra (1959), pour des distances de marche réelles et non à vol d'oiseau.
+- **geopandas**, **pandas**, **shapely**, **pyproj**, **rtree**, **numpy** et **mapclassify**, manipulation des données géospatiales et tabulaires, géométries, reprojections, index spatial et calcul matriciel.
+- **spopt (PySAL)** et **pulp**, couverture maximale (Church and ReVelle, 1974), appliquée à la validation d'ajout de services.
+- **folium**, deux cartes interactives, secteurs et clusters colorés par cote moyenne.
+- **matplotlib** et **fpdf2**, figures des deux groupes et rapport PDF des trois volets.
+- **pyyaml**, lecture de `config.yaml`, où tous les paramètres sont centralisés.
+- **pytest** et **pytest-cov**, tests unitaires et couverture, exécutés en intégration continue.
 
 ## Installation et environnement
-Les paramètres du projet sont centralisés dans `config.yaml` et chargés par `config_loader.py`, qui valide la configuration avant tout accès aux données. Aucun paramètre n'est codé en dur dans les scripts. La configuration couvre les CRS, la zone d'étude, les étiquettes OSM, les seuils de marche, les pondérations, l'optimisation, l'apparence des cartes et les chemins.
+Tous les paramètres sont centralisés dans `config.yaml` et validés par `config_loader.py` avant tout accès aux données. Aucun paramètre n'est codé en dur.
 
 **Avec conda (recommandé)**
 ```bash
@@ -162,92 +126,94 @@ python main.py                # exécute le pipeline complet
 ```
 
 **Avec Docker (environnement système complet)**
-Le `Dockerfile` part d'une image qui contient déjà GDAL et ses dépendances système, ce qui garantit le même résultat sur toute machine. Les dossiers de données et de sorties sont montés pour rester accessibles après l'exécution.
+Le `Dockerfile` part d'une image qui contient déjà GDAL et ses dépendances système, ce qui garantit le même résultat sur toute machine.
 ```bash
 docker build -t gmq580_ps_mg .
 docker run --rm -v ${PWD}/data:/app/data -v ${PWD}/outputs:/app/outputs gmq580_ps_mg
 ```
 
+Le pipeline écrit les cartes dans `outputs/maps`, les figures dans `outputs/figures`, les tableaux dans `outputs/tables` et le rapport PDF dans `outputs`.
+
 ## Tests et intégration continue
-Les tests ciblent les fonctions critiques où un bug reste silencieux mais fausse le résultat spatial, comme la reprojection vers EPSG:2950, la validité des géométries, la cote d'accessibilité et la pondération de la demande. Les données de test sont de petits objets synthétiques construits directement dans les tests, jamais les données réelles du projet. Chaque module d'analyse est couvert par des tests sur données synthétiques.
+Les tests ciblent les fonctions où un bug reste silencieux mais fausse le résultat spatial. C'est le cas de la reprojection, de la validité des géométries, de la cote d'accessibilité et des tableaux de résultats. Les données de test sont de petits objets synthétiques construits dans les tests, jamais les données réelles.
 
-**Lancer les tests localement**
 ```bash
-pytest tests/ -v
+pytest tests/ -v                                    # lancer les tests
+pytest tests/ --cov=src --cov-report=term-missing   # couverture de code
 ```
 
-**Couverture de code**
-```bash
-pytest tests/ --cov=src --cov-report=term-missing
-```
+Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie `ruff` puis rejoue `pytest` à chaque `push` et `pull request` sur `main`. Le badge en haut du README reflète le dernier passage. Les hooks `pre-commit` appliquent `black` et `ruff` avant chaque commit.
 
-Le workflow GitHub Actions (`.github/workflows/ci.yml`) vérifie la qualité du code avec `ruff` puis rejoue `pytest` à chaque `push` et `pull request` sur `main`. Le badge en haut de ce README reflète l'état du dernier passage (vert égale tests réussis). Les hooks `pre-commit` (`black`, `ruff`) appliquent les mêmes règles localement avant chaque commit.
-
-| Test | Vérifie | Statut |
-|------|---------|--------|
-| `test_io.py` | Reprojection correcte vers EPSG:2950 | ✅ Implanté |
-| `test_config_loader.py` | Chargement et validation de `config.yaml` | ✅ Implanté |
-| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu | ✅ Implanté |
-| `test_accessibility.py` | Cote sur 100 par résidence et accès par le transport | ✅ Implanté |
-| `test_demand.py` | Extraction de la population et répartition des aînés par AD | ✅ Implanté |
-| `test_coverage.py` | Indicateur de couverture des résidents vulnérables | ✅ Implanté |
-| `test_buildings.py` | Filtrage des bâtiments résidentiels, dont le cas `yes` croisé avec l'usage du sol | ✅ Implanté |
-| `test_validation.py` | Règles d'audit et détection des liens traversant la rivière | ✅ Implanté |
-| `test_optimization.py` | Couverture maximale sur une matrice minuscule à solution connue | ✅ Implanté |
+| Test | Vérifie |
+|------|---------|
+| `test_io.py` | Reprojection correcte vers EPSG:2950 |
+| `test_config_loader.py` | Chargement et validation de `config.yaml` |
+| `test_graph.py` | Distances de plus court chemin (Dijkstra) sur un mini-graphe connu |
+| `test_accessibility.py` | Cote sur 100 par résidence et accès par le transport |
+| `test_demand.py` | Répartition des aînés et du reste par aire de diffusion |
+| `test_coverage.py` | Indicateur de couverture par groupe |
+| `test_buildings.py` | Filtrage des bâtiments résidentiels, cas `yes` croisé avec `landuse=residential` |
+| `test_validation.py` | Règles d'audit et détection des liens traversant la rivière |
+| `test_optimization.py` | Couverture maximale sur une matrice minuscule à solution connue |
+| `test_scenarios.py` | Assortiment d'ajout par groupe et distances transport des candidats |
+| `test_sectors.py` | Meilleure aire retenue par municipalité et rattachement des aires aux villes |
+| `test_metrics.py` | Écart aînés reste, effet d'ajout, effet de barrière et tableau de secteurs |
 
 ## Livrables attendus
-- Un dépôt GitHub reproductible contenant l'ensemble du pipeline, avec tests unitaires exécutés en intégration continue et un `Dockerfile` pour l'environnement système complet.
-- Trois cartes interactives de l'accessibilité actuelle S0, l'accès à pied des aînés, l'accès à pied de la population générale et l'accès à pied des aînés avec le réseau de transport fixe.
-- Des cartes interactives des scénarios optimisés S1 (accès à pied), aux paliers de 2, 6 et 10 services ajoutés pour les aînés et au palier de 10 services pour la population générale, avec la localisation et le type de chaque service recommandé.
-- Une courbe de gain qui compare la part couverte des aînés et de la population générale pour l'ajout de 1 à 10 services.
-- Une analyse de sensibilité d'équité qui compare la pondération des aînés et celle de la population totale.
-- Un chiffrage de l'effet de barrière de la rivière Richelieu.
-- Un document écrit final de 10 pages maximum et une présentation orale de 10 minutes.
+- **Un dépôt reproductible.** Pipeline complet, configuration centralisée, tests en intégration continue et `Dockerfile`.
+- **Deux cartes interactives publiées**, [à la marche](https://girm8601.github.io/GMQ580_PS_MGiraldeau/outputs/maps/carte_levier_marche_aines.html) et [au transport](https://girm8601.github.io/GMQ580_PS_MGiraldeau/outputs/maps/carte_levier_transport_aines.html). Chacune montre, par municipalité, le meilleur secteur d'adresses existantes et le meilleur secteur où implanter des logements. Elles sont servies sur GitHub Pages depuis la branche `main`. L'adresse de base est réglée par `report.maps_base_url` dans `config.yaml`, qui alimente aussi les liens du rapport. Chaque carte contient plus de 17 000 résidences, son chargement prend quelques secondes.
+- **Un rapport PDF**, `outputs/rapport_projet.pdf`. Il rassemble au même endroit les figures, les tableaux et les liens de cartes des trois volets. Chacun est accompagné du texte qui explique son utilité. Le rapport se lit comme le fil de réflexion du projet. Le diagnostic établit le besoin, la validation écarte deux pistes chiffres à l'appui, le levier propose la solution. Le produire dans le code garantit qu'il reflète toujours les derniers résultats.
+- **Les tableaux CSV** de couverture, d'écart aînés reste, d'effet d'ajout de services, d'effet de barrière et des secteurs recommandés.
+- **Un document écrit** de 10 pages maximum et une présentation orale de 10 minutes.
 
 ## État d'avancement
-
 | Étape | Statut |
 |-------|--------|
-| Cadrage et réorientation du projet (services essentiels) | ✅ Complété |
-| Structuration du dépôt GitHub (arborescence du projet, `.gitignore`, branches) | ✅ Complété |
-| Acquisition des données (OSM, recensement, Données Québec, exo, CMM) | ✅ Complété |
-| Intégration du réseau de transport collectif (arrêts d'autobus, gares et lignes de train) | ✅ Complété |
-| Environnement conda (`environment.yml`), dépendances (`requirements.txt`) et Docker (`Dockerfile`) | ✅ Complété |
-| Tests unitaires (`pytest`) et intégration continue (GitHub Actions) | ✅ Complété |
-| Vérification et contrôle qualité des données | ✅ Complété |
-| Validation de la franchissabilité des ponts dans le graphe | ✅ Complété |
-| Délimitation de la zone d'étude (quatre municipalités riveraines) | ✅ Complété |
-| Assignation des poids d'importance par type de service, aînés et population générale | ✅ Complété |
-| Cote d'accessibilité sur 100 par résidence, aînés et population générale | ✅ Complété |
-| Carte de vérification de l'accès à pied avec le réseau de transport fixe | ✅ Complété |
-| Pondération de la demande par la vulnérabilité (aînés répartis par AD) | ✅ Complété |
-| Définition et filtrage des sites candidats (terrains commerciaux) | ✅ Complété |
-| Optimisation par couverture maximale avec `spopt` (S1, n de 1 à 10) | ✅ Complété |
-| Analyse de sensibilité d'équité | ✅ Complété |
-| Production des résultats (gains, effet de barrière) | ✅ Complété |
-| Cartes interactives et graphiques | ✅ Complété |
-| Vérification d'ensemble du projet (résultats, cartes, cohérence du dépôt) | 🔄 En cours |
-| Rédaction du rapport et préparation de la présentation orale | 🔄 En cours |
+| Cadrage en trois volets et structuration du dépôt | ✅ Complété |
+| Acquisition des données et contrôle qualité | ✅ Complété |
+| Environnement conda, Docker, tests et intégration continue | ✅ Complété |
+| Diagnostic d'équité, cote d'accessibilité et comparaison des deux groupes | ✅ Complété |
+| Validation, ajout de services et effet de barrière écartés | ✅ Complété |
+| Levier, meilleur secteur par municipalité, marche et transport | ✅ Complété |
+| Cartes publiées, tableaux et rapport PDF | ✅ Complété |
+| Rédaction du rapport écrit et préparation de la présentation orale | 🔄 En cours |
 
 ## Décisions méthodologiques
-- **Réorientation vers les services essentiels et reprise de GMQ210 (2026-06-23).** La zone était déjà saturée d'arrêts à la demande, le projet a donc évolué du transport vers l'accessibilité aux services essentiels. Cela permet aussi d'optimiser le type de service à ajouter. Avec l'accord de l'enseignant, le projet réutilise l'approche piétonne de GMQ210, à savoir OSM, Dijkstra et une cote sur 100 par résidence, et y ajoute la pondération par la vulnérabilité et l'optimisation.
-- **Zone d'étude sans zone tampon (2026-07-07).** Les quatre municipalités sont intégrées à l'étude au même titre, et le principe de zone tampon est retiré, car les aires de diffusion de McMasterville et d'Otterburn Park laissaient sinon des vides incohérents à l'affichage.
-- **Effet de barrière faible et documenté (2026-07-14).** Le calcul compare la couverture des aînés avec et sans les ponts. L'écart est très faible, quelques aînés pour la santé et nul pour les autres types. La rivière structure la lecture des cartes, mais son effet sur la couverture reste mineur. Ce constat est conservé comme un résultat du projet.
-- **Facteur de vulnérabilité et cote par résidence (2026-07-14).** Le critère retenu est les 65 ans et plus, une donnée robuste du recensement qui évite les biais des données manquantes et des indices composites. Chaque résidence reçoit une cote sur 100 selon sa distance de marche vers chaque service, pondérée par l'importance du service pour la population. Les aînés sont notés Excellent à moins de 200 mètres, la population générale à moins de 400 mètres, car elle tolère une marche plus longue. La distance minimale vers chaque service reste affichée même au delà des seuils. La couverture des aînés par aire de diffusion sert d'indicateur principal pour l'optimisation.
-- **Deux pondérations d'importance des services (2026-07-14).** Deux jeux de poids sont définis dans `config.yaml`, un pour les aînés et un pour la population générale, car les deux populations ne privilégient pas les mêmes services. Ces poids guident la cote par résidence, le choix de l'assortiment à ajouter et la couverture moyenne des cartes.
-- **Transport gardé pour vérification seulement (2026-07-14).** Le réseau fixe d'exo, arrêts d'autobus et gares, sert à produire une carte S0 qui montre l'accès une fois le transport pris en compte. Un service atteignable par le transport est compté selon la marche de la résidence vers un arrêt, plus la marche du meilleur arrêt vers le service, les deux marches devant rester courtes. Le service à la demande n'est pas diffusé publiquement et le train complète simplement l'autobus. Cette carte confirme que le transport dessert déjà bien les aînés, donc l'optimisation porte sur la marche seule.
-- **Trois cartes S0 et sensibilité d'équité (2026-07-14).** Une carte montre l'accès à pied des aînés, une deuxième celui de la population générale et une troisième celui des aînés avec le transport. La comparaison des deux premières sert à l'analyse de sensibilité d'équité.
-- **Scénarios S1 en assortiment mixte sur la marche (2026-07-14).** L'optimisation vise l'accès à pied, celui qui mérite le plus d'être amélioré. L'assortiment va jusqu'à 10 ajouts. Chaque étape retient le type et le site qui rapportent le plus une fois pondérés par l'importance, et un site choisi ferme ses environs immédiats pour que chaque ajout desserve une zone différente. Chaque résidence a sa propre cote, les aires de diffusion servent seulement à placer les services là où les aînés sont plus nombreux. Des cartes sont produites aux paliers 2, 6 et 10 pour les aînés et au palier 10 pour la population générale.
-- **Bâtiments résidentiels et sites candidats (2026-07-14).** Une seule étiquette `building` ne suffit pas à capter toutes les résidences, la liste des valeurs retenues est donc centralisée dans `config.yaml` et complétée par les nœuds d'adresse isolés. La valeur générique `yes`, ambiguë, ne compte comme résidentielle que si le bâtiment tombe dans un polygone d'usage résidentiel de la CMM. Un nouveau service ne peut s'implanter que sur un vrai terrain commercial, les terrains de code 200 de la CMM sont donc croisés avec les polygones OpenStreetMap `landuse=commercial` et doivent être proches du réseau piétonnier.
-- **Poids d'importance fondés sur la littérature (2026-07-16).** Les deux jeux de poids, distincts selon le type de service et le groupe visé, ne reposent plus sur un jugement personnel mais sur des études sur l'importance des services de proximité.
-- **Étiquettes OSM élargies pour la complétude des services (2026-07-17).** Les étiquettes `healthcare` (santé, dentiste et pharmacie, types distincts conservés) et `amenity=childcare` (garderies) sont ajoutées à la configuration pour capter les établissements tagués autrement dans OSM. Les services encore manquants, dont des cliniques vétérinaires, seront ajoutés par contribution directe à OpenStreetMap puis re-téléchargement, ce qui reste entièrement reproductible.
+- **Réorientation vers les services essentiels et reprise de GMQ210 (2026-06-23).** La zone était déjà saturée d'arrêts à la demande. Le projet a donc évolué du transport vers l'accessibilité aux services essentiels. Il reprend l'approche piétonne de GMQ210, avec l'accord de l'enseignant, soit OSM, Dijkstra et une cote sur 100 par résidence. La pondération par la vulnérabilité y est ajoutée.
+- **Zone d'étude sans zone tampon (2026-07-07).** Les quatre municipalités sont intégrées au même titre. Une zone tampon laissait des vides incohérents à l'affichage dans les aires de McMasterville et d'Otterburn Park.
+- **Facteur de vulnérabilité et cote par résidence (2026-07-14).** Le critère retenu est les 65 ans et plus, une donnée robuste du recensement. Chaque résidence reçoit une cote sur 100 selon sa distance de marche vers chaque service, pondérée par l'importance de ce service. Les aînés sont notés Excellent à moins de 200 mètres. Le reste l'est à moins de 400 mètres, car il tolère une marche plus longue. Ces paliers suivent les distances de marche observées selon le motif du déplacement et le sous-groupe de population (Yang and Diez-Roux, 2012). Le principe d'une cote décroissante avec la distance reprend celui du Walk Score (s.d.).
+- **Poids d'importance fondés sur la littérature (2026-07-16).** Les poids varient selon le type de service. Ils reposent sur les distances observées par motif de déplacement (Yang and Diez-Roux, 2012) et sur la pondération par catégorie d'attrait du Walk Score (s.d.), et non sur un jugement personnel.
+- **Étiquettes OSM élargies (2026-07-17).** Les étiquettes `healthcare` et `amenity=childcare` captent les établissements tagués autrement dans OSM.
+- **Le reste de la population comme groupe de comparaison (2026-07-23).** Le groupe retenu est la population totale moins les aînés. Il est plus net que le total, qui inclurait les aînés eux-mêmes. Ce groupe est mieux desservi et privilégie des services différents, comme l'école et la garderie. Les aînés ont donc des besoins qui leur sont propres.
+- **Transport propre à chaque groupe (2026-07-23).** La marche maximale vers un arrêt est de 800 mètres pour les aînés et de 1000 mètres pour le reste. L'effet de barrière est mesuré pour chaque groupe à son seuil.
+- **Retrait de la CMM au profit des étiquettes landuse d'OSM (2026-07-23).** Les données de la CMM contenaient trop d'erreurs de classement. Les bâtiments `yes` sont confirmés par `landuse=residential`. Les sites candidats de services viennent de `landuse` commercial et retail. Ceux de logement viennent des terrains à développer, friche, terrain vierge et chantier. Le brownfield est conservé pour la reproductibilité même s'il est absent de la zone.
+- **Étude d'ajout de services limitée à cinq (2026-07-23).** L'ajout est étudié de 1 à 5 services précis pour chaque groupe. Au delà, le gain devient négligeable. L'étude appartient à la validation, elle montre que ce gain reste trop faible pour être la solution.
+- **Levier par secteurs d'aires de diffusion (2026-07-23).** Le levier propose des secteurs plutôt que des points précis. Cela évite la concentration et donne des options lisibles. Chaque secteur est un polygone d'aire coloré par sa cote qualitative moyenne, avec un carré pictogramme au centroïde.
+- **Rapport PDF de diffusion (2026-07-23).** Le rapport est généré par le pipeline. La page titre porte le logo de l'Université de Sherbrooke, le nom n'est pas répété puisque le logo le porte. Suivent les trois volets, chacun avec sa figure, ses tableaux, ses liens de cartes, une introduction et une conclusion.
+- **Un secteur de chaque type par municipalité (2026-07-28).** Le classement global concentrait les recommandations dans une seule ville. Le levier retient maintenant deux aires par municipalité, la mieux cotée selon les adresses existantes et la mieux cotée selon les terrains à développer. Cela donne huit secteurs au maximum par carte. Une ville sans terrain n'obtient pas de secteur de logement. Une aire est rattachée à la municipalité qui la recouvre le plus.
+- **Cartes plus lisibles et publiées (2026-07-28).** Un cluster de résidences prend la couleur de la cote moyenne de ses points. La couleur garde ainsi partout le même sens. Les deux cartes sont versionnées et servies telles quelles sur GitHub Pages, plutôt que résumées en images statiques. Le lecteur garde donc l'interactivité complète.
+- **Coordonnées exportées en latitude et longitude (2026-07-28).** Les tableaux CSV donnent la position en degrés décimaux WGS84 plutôt qu'en mètres MTM 8. Ils sont ainsi utilisables sans connaître le CRS du projet.
 
 ## Difficultés rencontrées
-- **Complétude et validation d'OpenStreetMap.** La qualité des données en milieu périurbain peut varier, pour le réseau comme pour les services. La franchissabilité piétonne des ponts sur le Richelieu est validée par le module `bridges.py`, qui contrôle un chemin piéton continu d'une rive à l'autre, croisé au besoin avec l'imagerie aérienne. Aucune couche équivalente n'étant diffusée, les manques résiduels sont documentés comme une limite du projet.
+- **Complétude et validation d'OpenStreetMap.** La qualité varie en milieu périurbain, pour le réseau comme pour les étiquettes. La franchissabilité piétonne des ponts est validée par `bridges.py`, croisée au besoin avec l'imagerie aérienne. Les terrains à développer peuvent être absents d'une ville. Le pipeline saute alors le secteur de logement concerné.
 - **Données du transport à la demande indisponibles.** Les emplacements des arrêts du service exo à la demande ne sont pas diffusés publiquement. L'analyse se limite au réseau fixe, ce qui garde le traitement reproductible.
-- **Hétérogénéité des systèmes de coordonnées.** Les sources arrivent dans des CRS différents. Une fonction de reprojection unique vers EPSG:2950, couverte par un test unitaire, est appliquée à toutes les couches avant analyse pour éviter les jointures spatiales silencieusement fausses.
-- **Agrégation du recensement et effet de bordure.** Le nombre d'aînés d'une aire de diffusion est réparti sur les résidences de cette aire, tout le reste du calcul demeure entre points précis. Les services situés juste au-delà des limites ne sont pas comptés, mais les cartes montrent que les services se concentrent au cœur des villes, donc l'effet résiduel est jugé faible.
-- **Modélisation simplifiée et pondérations non validées.** Un seul critère de vulnérabilité est retenu, et à l'intérieur d'un même type chaque service est traité comme équivalent, sans égard à sa taille ni à sa capacité. Les poids d'importance ont été fixés selon un jugement appuyé par la littérature sur les services de proximité, sans consulter la communauté aînée ni la population générale. Une enquête permettrait de les valider, et la configuration centralisée rend cet ajustement immédiat.
+- **Hétérogénéité des systèmes de coordonnées.** Les sources arrivent dans des CRS différents. Une fonction de reprojection unique vers EPSG:2950 est appliquée à toutes les couches avant analyse, et couverte par un test unitaire. Elle évite les jointures spatiales silencieusement fausses.
+- **Agrégation du recensement et effet de bordure.** Le compte d'aînés et du reste d'une aire est réparti sur les résidences de cette aire. Tout le reste du calcul demeure entre points précis. Les services juste au-delà des limites ne sont pas comptés, mais ils se concentrent au cœur des villes. L'effet résiduel est donc jugé faible.
+- **Modélisation simplifiée et pondérations non validées.** Un seul critère de vulnérabilité est retenu. Chaque service d'un même type est traité comme équivalent, sans égard à sa taille. Les poids d'importance suivent la littérature, sans consultation de la communauté aînée. Une enquête permettrait de les valider, et la configuration centralisée rend cet ajustement immédiat.
 
 ## Références
-À compléter
+Boeing, G. (2017) OSMnx: new methods for acquiring, constructing, analyzing, and visualizing complex street networks. Computers, Environment and Urban Systems, vol. 65, p. 126-139.
+
+Cerin, E., Nathan, A., van Cauwenberg, J., Barnett, D.W. and Barnett, A. (2017) The neighbourhood physical environment and active travel in older adults: a systematic review and meta-analysis. International Journal of Behavioral Nutrition and Physical Activity, vol. 14, no 1, article 15.
+
+Church, R. and ReVelle, C. (1974) The maximal covering location problem. Papers in Regional Science, vol. 32, no 1, p. 101-118.
+
+Dijkstra, E.W. (1959) A note on two problems in connexion with graphs. Numerische Mathematik, vol. 1, no 1, p. 269-271.
+
+Organisation mondiale de la Santé (2007) Guide mondial des villes-amies des aînés. Organisation mondiale de la Santé, Genève, 76 p.
+
+Statistique Canada (2021) Aire de diffusion (AD). *In* Dictionnaire, Recensement de la population, 2021, Gouvernement du Canada [En ligne]. https://www12.statcan.gc.ca/census-recensement/2021/ref/dict/az/definition-fra.cfm?ID=geo021 (page consultée le 28 juillet 2026).
+
+Walk Score (s.d.) Walk Score Methodology [En ligne]. https://www.walkscore.com/methodology.shtml (page consultée le 17 juillet 2026).
+
+Yang, Y. and Diez-Roux, A.V. (2012) Walking distance by trip purpose and population subgroups. American Journal of Preventive Medicine, vol. 43, no 1, p. 11-19.
