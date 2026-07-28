@@ -14,6 +14,7 @@ dependencies:
   - mapclassify>=2.6
   - folium>=0.15
   - matplotlib>=3.7
+  - fpdf2>=2.7
   - spopt>=0.6
   - pulp>=2.7
   - pyyaml>=6.0
