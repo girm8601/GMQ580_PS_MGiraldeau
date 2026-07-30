@@ -1,9 +1,15 @@
 """Optimisation par couverture maximale avec spopt.
 
-Le modele choisit les sites candidats qui couvrent la plus grande demande sous le
-seuil de marche. Ce noyau sert au levier de logement, choisir les meilleurs terrains
-brownfield pour les aines, et a la validation qui montre que l'ajout de services ne
-rapporte pas assez. Les scenarios eux memes sont construits dans scenarios.py.
+Le modele choisit les sites candidats qui couvrent la plus grande demande sous le seuil de
+marche (Church and ReVelle, 1974). Il sert deux fois dans la validation d'ajout de
+services. Une fois par etape de l'assortiment, ou il place un seul service sur la demande
+encore non couverte. Une fois pour la borne superieure du gain, ou il place les cinq
+services d'un coup et donne donc le vrai optimum et non un choix glouton. Les scenarios
+eux memes sont construits dans scenarios.py.
+
+La demande est agregee par noeud du graphe avant d'entrer ici, voir scenarios.py. Le
+modele reste exactement le meme, il compte simplement six fois moins de lignes, ce qui le
+rend rapide.
 """
 
 from __future__ import annotations
@@ -37,10 +43,11 @@ def distance_matrix(
 
 
 def solve_mclp(cost_matrix, weights, threshold_m, n_facilities, solver=None):
-    """Resout la couverture maximale et retourne les sites choisis.
+    """Resout la couverture maximale avec spopt et retourne les sites choisis.
 
-    Retourne les indices des sites retenus et la demande couverte. La demande
-    deja couverte au depart doit etre retiree des poids par l'appelant.
+    Retourne les indices des sites retenus et la demande couverte. La demande deja couverte
+    au depart doit etre retiree des poids par l'appelant, le modele travaille alors sur ce
+    qu'il reste a gagner.
     """
     import pulp
     from spopt.locate import MCLP
