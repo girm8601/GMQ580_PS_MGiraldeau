@@ -1,0 +1,19 @@
+group,service_type,n_added,threshold_m,site_ids,covered_before_percent,covered_after_percent,gain_percent
+seniors,pharmacy,5,800.0,16 44 64 98 101,25.5,41.8,16.3
+seniors,school,5,800.0,8 63 101 108 111,40.4,55.9,15.5
+seniors,kindergarten,5,800.0,0 7 44 86 111,31.9,46.5,14.6
+seniors,bank,5,800.0,0 63 86 98 101,18.4,36.6,18.2
+seniors,health,5,800.0,0 7 60 86 100,13.8,33.3,19.6
+seniors,dentist,5,800.0,7 16 63 86 100,10.0,32.9,22.9
+seniors,veterinary,5,800.0,7 44 63 86 100,4.5,29.4,24.9
+seniors,supermarket,5,800.0,0 16 44 98 101,21.1,38.2,17.1
+seniors,convenience,5,800.0,16 56 64 86 100,28.2,43.7,15.5
+rest,pharmacy,5,1000.0,45 52 53 56 100,25.6,47.6,22.0
+rest,school,5,1000.0,50 56 60 101 111,56.1,70.1,14.0
+rest,kindergarten,5,1000.0,49 52 53 56 111,35.3,54.5,19.3
+rest,bank,5,1000.0,0 52 56 70 100,18.8,41.9,23.2
+rest,health,5,1000.0,0 52 70 100 111,16.7,38.5,21.8
+rest,dentist,5,1000.0,17 52 70 100 111,14.9,37.7,22.8
+rest,veterinary,5,1000.0,44 56 70 100 111,7.5,33.8,26.3
+rest,supermarket,5,1000.0,0 46 52 56 100,18.9,41.1,22.2
+rest,convenience,5,1000.0,52 57 76 97 100,37.4,56.5,19.1
