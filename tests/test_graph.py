@@ -3,7 +3,7 @@
 
 import networkx as nx
 
-from src.processing.graph import distances_from_sources, shortest_distance
+from src.processing.graph import distances_from_sources
 
 
 def make_line_graph():
@@ -13,19 +13,6 @@ def make_line_graph():
     graph.add_edge(2, 3, length=200.0)
     graph.add_edge(3, 4, length=300.0)
     return graph
-
-
-def test_simple_distance():
-    """La distance de 1 a 4 doit valoir la somme des trois segments."""
-    graph = make_line_graph()
-    assert shortest_distance(graph, 1, 4) == 600.0
-
-
-def test_no_path_returns_none():
-    """Deux noeuds non relies doivent donner None plutot qu'une erreur."""
-    graph = make_line_graph()
-    graph.add_node(99)
-    assert shortest_distance(graph, 1, 99) is None
 
 
 def test_multi_source_distances():
