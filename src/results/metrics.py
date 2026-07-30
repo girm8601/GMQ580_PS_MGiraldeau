@@ -91,10 +91,20 @@ def service_addition_effect_table(gains):
     """Effet de chaque ajout de service, par groupe.
 
     Une ligne par ajout, le groupe, le rang de l'ajout, le type ajoute, le site et sa
-    position en degres, le seuil en metres et la part du groupe couverte apres cet ajout.
-    La ligne de depart sans ajout est ecartee.
+    position en degres, le seuil en metres, la part du groupe couverte apres cet ajout et
+    le gain depuis le depart. La ligne de depart sans ajout est ecartee du tableau, mais
+    elle sert de reference au gain, sinon le lecteur ne verrait qu'un niveau et jamais un
+    gain.
     """
+    baseline = (
+        gains[gains["n_services"] == 0]
+        .set_index("group")["weighted_covered_percent"]
+        .to_dict()
+    )
     effect = gains[gains["n_services"] >= 1].copy()
+    effect["gain_percent"] = (
+        effect["weighted_covered_percent"] - effect["group"].map(baseline)
+    ).round(1)
     columns = [
         "group",
         "n_services",
@@ -103,7 +113,8 @@ def service_addition_effect_table(gains):
         "latitude",
         "longitude",
         "threshold_m",
-        "covered_percent",
+        "weighted_covered_percent",
+        "gain_percent",
     ]
     return effect[columns].reset_index(drop=True)
 
