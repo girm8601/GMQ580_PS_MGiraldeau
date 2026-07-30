@@ -9,13 +9,11 @@ l'effet de barriere, qui reste faible.
 
 from __future__ import annotations
 
-import os
-
 import geopandas as gpd
 import pandas as pd
 
 from src.processing.graph import distances_from_sources
-from src.results.metrics import barrier_effect_table, export_table
+from src.results.metrics import barrier_effect_table
 
 
 def classify_banks(nodes_gdf, municipalities_gdf, west_names, east_names, name_field):
@@ -93,12 +91,88 @@ def _covered_weight(
     )
 
 
+def river_polygon(water_gdf, municipalities_gdf, west_names, east_names, name_field):
+    """Le plan d'eau qui separe les deux rives, la riviere Richelieu.
+
+    La couche d'eau porte aussi un lac et une vingtaine d'etangs. Seul le polygone qui
+    touche a la fois une municipalite de l'ouest et une de l'est fait barriere entre les
+    deux rives, c'est la definition meme de l'effet mesure ici. Retourne None si aucun
+    polygone ne separe les deux rives.
+    """
+    if water_gdf is None or len(water_gdf) == 0:
+        return None
+    west = municipalities_gdf[
+        municipalities_gdf[name_field].isin(west_names)
+    ].union_all()
+    east = municipalities_gdf[
+        municipalities_gdf[name_field].isin(east_names)
+    ].union_all()
+    separating = water_gdf[
+        water_gdf.geometry.intersects(west) & water_gdf.geometry.intersects(east)
+    ]
+    return separating.union_all() if len(separating) > 0 else None
+
+
+def unclassified_edges(edge_keys, banks):
+    """Parmi des liens donnes, ceux dont au moins une extremite n'a pas de rive connue."""
+    return [
+        (u, v, key)
+        for u, v, key in edge_keys
+        if banks.get(u) is None or banks.get(v) is None
+    ]
+
+
+def river_edges_without_bank(graph, river, banks):
+    """Liens qui coupent la riviere sans rive connue aux deux bouts, les ponts suspects.
+
+    Trois cas coupent la riviere. Un lien entre deux rives opposees est un pont, il est deja
+    detecte. Un lien dont les deux bouts sont sur la meme rive est un sentier de berge qui
+    coupe une anse, c'est normal et la zone en compte six. Reste le cas ou une extremite
+    n'appartient a aucune municipalite connue. Un noeud pose au milieu d'un pont produirait
+    exactement ce cas, et le pont echapperait alors a la detection par les rives. Retourne
+    None si la riviere ou les geometries de liens sont absentes.
+    """
+    import osmnx as ox
+
+    if river is None:
+        return None
+    edges = ox.graph_to_gdfs(graph, nodes=False)
+    if "geometry" not in edges.columns:
+        return None
+    crossing = edges[edges.geometry.crosses(river)]
+    return unclassified_edges(list(crossing.index), banks)
+
+
+def _check_bridge_detection(graph, river, banks, crossings, logger):
+    """Verifie qu'aucun lien franchissant la riviere n'a echappe a la detection."""
+    suspects = river_edges_without_bank(graph, river, banks)
+    if suspects is None:
+        logger.warning(
+            "Riviere introuvable dans la couche d'eau, la detection des ponts n'a pas pu "
+            "etre recoupee"
+        )
+        return
+    if suspects:
+        logger.warning(
+            "Detection des ponts a verifier, %d lien(s) coupent la riviere sans rive "
+            "connue aux deux bouts",
+            len(suspects),
+        )
+        return
+    logger.info(
+        "Detection des ponts recoupee, %d lien(s) de pont et aucun lien de riviere sans "
+        "rive connue",
+        len(crossings),
+    )
+
+
 def barrier_analysis(layers, residences, services, config, logger):
     """Chiffre l'effet de barriere par groupe et par service en coupant les liens du pont.
 
     Pour chaque groupe a son seuil, aines a 800 m et reste a 1000 m, on compte la demande
     couverte par type de service avec les ponts puis sans les ponts. L'ecart est l'effet de
-    barriere, qui reste faible.
+    barriere, qui reste faible. Retourne le tableau d'effet et le tableau verifiable des
+    liens traversants, que l'appelant exporte comme les autres tableaux.
     """
     import osmnx as ox
 
@@ -113,17 +187,17 @@ def barrier_analysis(layers, residences, services, config, logger):
     )
     crossings = find_crossing_edges(graph, banks)
     report = crossing_report(graph, crossings)
-    export_table(
-        report,
-        os.path.join(
-            config["paths"]["outputs_tables"],
-            config["paths"]["table_files"]["crossing_bridges"],
-        ),
-        logger,
-    )
     logger.info(
         "Liens traversant la riviere, %d, franchissabilite confirmee", len(crossings)
     )
+    river = river_polygon(
+        layers.get("water"),
+        layers["municipalities"],
+        config["study_area"]["west_bank"],
+        config["study_area"]["east_bank"],
+        config["study_area"]["municipality_name_field"],
+    )
+    _check_bridge_detection(graph, river, banks, crossings, logger)
 
     cut_graph = remove_crossing_edges(graph, crossings)
     node_by_residence = dict(zip(residences["residence_id"], residences["node"]))
@@ -162,4 +236,4 @@ def barrier_analysis(layers, residences, services, config, logger):
                 }
             )
         logger.info("Effet de barriere evalue pour %s", group_label)
-    return barrier_effect_table(rows)
+    return barrier_effect_table(rows), report
