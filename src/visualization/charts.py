@@ -29,20 +29,14 @@ def _save(figure, path, dpi, logger=None):
         logger.info("Figure exportee, %s", path)
 
 
-def _zoom_limits(values, margin):
-    """Bornes verticales resserrees sur les valeurs utilisees, bornees de 0 a 100."""
-    low = max(0.0, math.floor(min(values) - margin))
-    high = min(100.0, math.ceil(max(values) + margin))
-    if high <= low:
-        high = low + 1.0
-    return low, high
-
-
 def coverage_chart(summary, config, path, logger=None):
     """Deux panneaux de couverture a pied, aines et reste, chacun par son importance.
 
     Chaque panneau range les services du plus important au moins important pour le groupe,
-    comme l'ordre des infobulles des cartes. summary vient de coverage_summary.
+    comme l'ordre des infobulles des cartes. Les deux panneaux partagent la meme echelle
+    horizontale, sinon l'ecart entre les deux groupes deviendrait invisible. Le seuil de
+    chaque groupe figure dans le titre de son panneau, les deux ne sont pas les memes.
+    summary vient de coverage_summary.
     """
     vc = config["visualization"]
     labels = vc["service_labels"]
@@ -60,7 +54,10 @@ def coverage_chart(summary, config, path, logger=None):
         ),
     ]
     width, height = vc["chart_figsize_bar"]
-    figure, axes = plt.subplots(1, 2, figsize=(width * 2, height), layout="constrained")
+    figure, axes = plt.subplots(
+        1, 2, figsize=(width * 2, height), layout="constrained", sharex=True
+    )
+    highest = 0.0
     for axis, (population, importance, threshold) in zip(axes, groups):
         subset = summary[
             (summary["population"] == population)
@@ -74,8 +71,15 @@ def coverage_chart(summary, config, path, logger=None):
         names = subset["service_type"].map(lambda t: labels.get(t, t))
         axis.barh(names, subset["covered_percent"], color=vc["color_chart_bar"])
         axis.set_xlabel(vc["label_chart_bar_xaxis"])
-        axis.set_title(weighting_labels.get(population, population))
+        axis.set_title(
+            vc["title_coverage_panel"].format(
+                group=weighting_labels.get(population, population),
+                threshold=threshold,
+            )
+        )
         axis.grid(True, axis="x", alpha=vc["chart_grid_alpha"])
+        highest = max(highest, float(subset["covered_percent"].max()))
+    axes[0].set_xlim(0, math.ceil(highest / 10.0) * 10.0)
     figure.suptitle(vc["title_coverage"])
     _save(figure, path, vc["chart_dpi"], logger)
 
@@ -83,9 +87,10 @@ def coverage_chart(summary, config, path, logger=None):
 def gain_curve_chart(gains_df, config, path, logger=None):
     """Deux panneaux de gain, aines et reste, part couverte selon le nombre d'ajouts.
 
-    Un panneau par groupe, chacun garde sa propre echelle verticale car les seuils et les
-    importances different. La courbe sert a la validation, le gain devient negligeable au
-    dela de quelques ajouts. gains_df contient n_services, group et covered_percent.
+    Les deux panneaux gardent l'echelle verticale complete de la configuration. Une echelle
+    resserree ferait paraitre le gain important alors que la validation montre l'inverse, il
+    reste faible peu importe le nombre d'ajouts. gains_df contient n_services, group et
+    weighted_covered_percent.
     """
     vc = config["visualization"]
     weighting_labels = vc["weighting_labels"]
@@ -102,11 +107,11 @@ def gain_curve_chart(gains_df, config, path, logger=None):
     for axis, weighting in zip(axes[0], present):
         group = gains_df[gains_df["group"] == weighting].sort_values("n_services")
         axis.plot(
-            group["n_services"], group["covered_percent"], marker=vc["chart_marker"]
+            group["n_services"],
+            group["weighted_covered_percent"],
+            marker=vc["chart_marker"],
         )
-        axis.set_ylim(
-            *_zoom_limits(group["covered_percent"].tolist(), vc["chart_zoom_margin"])
-        )
+        axis.set_ylim(*vc["chart_gain_y_limits"])
         axis.set_xlabel(vc["label_chart_gain_xaxis"])
         axis.set_ylabel(vc["label_chart_gain_yaxis"])
         axis.set_title(weighting_labels.get(weighting, weighting))
