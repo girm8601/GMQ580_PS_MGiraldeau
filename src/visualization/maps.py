@@ -8,6 +8,12 @@ les gares sont des bulles rondes. Les meilleurs secteurs d'adresses et de sites 
 en polygones remplis colores par leur cote moyenne, avec un carre pictogramme au centroide.
 Les limites sont tracees en noir. Toutes les couleurs, tailles, epaisseurs et noms de
 couches viennent de la section visualization de config.yaml.
+
+Chaque carte porte aussi les elements d'une carte thematique, un titre, une legende, une
+barre d'echelle et une note de source et de projection. La legende decrit tout ce qui est
+trace et rien d'autre, les reperes du transport n'y figurent donc que sur la carte du
+transport. Elle est en bas a gauche et l'echelle en bas a droite, les deux ne peuvent pas
+se couvrir. La fleche du nord est inutile ici, le nord d'une carte web est toujours en haut.
 """
 
 from __future__ import annotations
@@ -16,12 +22,33 @@ import json
 import os
 
 import folium
+import geopandas as gpd
+from branca.element import MacroElement
 from folium.plugins import MarkerCluster
+from jinja2 import Template
 
 
 def _to_display(gdf, geographic_crs):
     """Reprojette une couche vers le CRS d'affichage web."""
     return gdf.to_crs(geographic_crs)
+
+
+def walk_edges_for_display(graph, config):
+    """Reseau pietonnier simplifie pour l'affichage des cartes.
+
+    Le graphe est oriente, chaque rue porte donc deux liens opposes. Un seul des deux est
+    garde pour ne pas dessiner chaque rue en double. La tolerance de simplification vient
+    de la configuration.
+    """
+    import osmnx as ox
+
+    edges = ox.graph_to_gdfs(graph, nodes=False).reset_index()
+    if {"u", "v"}.issubset(edges.columns):
+        edges = edges[edges["u"] < edges["v"]]
+    edges = edges[["geometry"]].copy()
+    tolerance = config["visualization"]["map_network_simplify_m"]
+    edges["geometry"] = edges.geometry.simplify(tolerance)
+    return edges
 
 
 def ordered_service_types(service_types, importance):
@@ -44,18 +71,271 @@ def _save(web_map, path, logger=None):
 
 
 def _base_map(zone_gdf, vc, geographic_crs):
-    """Cree la carte de base centree sur la zone d'etude, avec Font Awesome charge."""
-    zone = _to_display(zone_gdf, geographic_crs)
-    center = zone.geometry.union_all().centroid
+    """Cree la carte de base centree sur la zone d'etude, avec Font Awesome charge.
+
+    Le centre est calcule dans le CRS projete du projet puis ramene en degres, une moyenne
+    de degres ne donnerait pas le vrai centre. L'echelle de folium melangerait metres et
+    pieds, elle est donc ajoutee separement par _add_scale.
+    """
+    center = _to_display(
+        gpd.GeoSeries([zone_gdf.geometry.union_all()], crs=zone_gdf.crs).centroid,
+        geographic_crs,
+    ).iloc[0]
     web_map = folium.Map(
         location=[center.y, center.x],
         zoom_start=vc["map_zoom_start"],
         tiles=vc["map_tiles"],
+        control_scale=False,
     )
     web_map.get_root().header.add_child(
         folium.Element(f'<link rel="stylesheet" href="{vc["font_awesome_cdn"]}">')
     )
     return web_map
+
+
+def _add_title(web_map, title, subtitle, vc):
+    """Ajoute le titre et le sous titre de la carte, en haut et centres."""
+    html = (
+        f'<div style="position:fixed;top:10px;left:50%;transform:translateX(-50%);'
+        f"z-index:9999;background:rgba(255,255,255,0.92);padding:6px 14px;"
+        f"border:1px solid #999;border-radius:4px;text-align:center;"
+        f'font-family:system-ui,Arial,sans-serif;max-width:{vc["size_title_box"]}px;">'
+        f'<div style="font-size:{vc["size_title_font"]}px;font-weight:bold;">{title}</div>'
+        f'<div style="font-size:{vc["size_subtitle_font"]}px;">{subtitle}</div>'
+        f"</div>"
+    )
+    web_map.get_root().html.add_child(folium.Element(html))
+
+
+def _legend_row(symbol, label):
+    """Une ligne de legende, un symbole suivi de son libelle."""
+    return (
+        f'<div style="margin:3px 0;line-height:1.25;display:flex;'
+        f'align-items:center;gap:6px;">'
+        f'<span style="flex:0 0 18px;text-align:center;">{symbol}</span>'
+        f"<span>{label}</span></div>"
+    )
+
+
+def _legend_patch(color, size_px):
+    """Carre plein de couleur, pour une classe de cote ou une surface."""
+    return (
+        f'<span style="display:inline-block;width:{size_px}px;height:{size_px}px;'
+        f'background:{color};border:1px solid #333;vertical-align:middle;"></span>'
+    )
+
+
+def _legend_line(color, weight, dashed=False):
+    """Segment de trait, pour une limite ou un reseau."""
+    style = "dashed" if dashed else "solid"
+    return (
+        f'<span style="display:inline-block;width:18px;'
+        f'border-top:{max(weight, 1)}px {style} {color};vertical-align:middle;"></span>'
+    )
+
+
+def _legend_bubble(icon_class, color, size_px):
+    """Bulle ronde coloree avec son pictogramme, pour un arret ou une gare."""
+    return (
+        f'<span style="display:inline-flex;align-items:center;'
+        f"justify-content:center;width:{size_px}px;height:{size_px}px;"
+        f'background:{color};border-radius:50%;">'
+        f'<i class="fa-solid {icon_class}" style="color:#fff;'
+        f'font-size:{int(size_px * 0.6)}px;"></i></span>'
+    )
+
+
+def _legend_pin(color, size_px):
+    """Epingle coloree, pour un service essentiel."""
+    return (
+        f'<span style="display:inline-block;width:{size_px}px;height:{size_px}px;'
+        f"background:{color};border-radius:50% 50% 50% 0;"
+        f'transform:rotate(-45deg);vertical-align:middle;"></span>'
+    )
+
+
+def _legend_cluster(color, size_px, sample):
+    """Bulle ronde portant un nombre, pour un groupe de residences.
+
+    sample est le nombre montre en exemple, il vient de la configuration.
+    """
+    return (
+        f'<span style="display:inline-flex;align-items:center;'
+        f"justify-content:center;width:{size_px}px;height:{size_px}px;"
+        f"background:{color};border:1px solid #fff;border-radius:50%;color:#fff;"
+        f'font-size:{int(size_px * 0.5)}px;font-weight:bold;">{sample}</span>'
+    )
+
+
+def _quality_rows(vc, size_px):
+    """Les classes de cote, la couleur qui vaut partout sur la carte."""
+    return [
+        _legend_row(_legend_patch(color, size_px), label)
+        for label, color in vc["quality_colors"].items()
+    ]
+
+
+def _sector_rows(vc):
+    """Les deux types de secteurs recommandes, avec leur carre pictogramme."""
+    rows = []
+    for icon_key, name_key in (
+        ("icon_best_address", "address_sectors"),
+        ("icon_new_residence", "site_sectors"),
+    ):
+        symbol = f'<i class="fa-solid {vc[icon_key]}" style="color:#333;"></i>'
+        rows.append(_legend_row(symbol, vc["layer_names"][name_key]))
+    return rows
+
+
+def _marker_rows(vc, size_px, with_transit):
+    """Les reperes ponctuels reellement traces sur la carte."""
+    names = vc["layer_names"]
+    rows = [
+        _legend_row(
+            _legend_cluster(
+                vc["color_residence_default"],
+                size_px + 6,
+                vc["legend_cluster_sample"],
+            ),
+            vc["legend_cluster_label"],
+        ),
+        _legend_row(
+            _legend_pin(vc["color_services"], size_px),
+            vc["legend_service_label"],
+        ),
+    ]
+    if with_transit:
+        rows.append(
+            _legend_row(
+                _legend_bubble(vc["icon_stop"], vc["color_stops"], size_px + 3),
+                names["stops"],
+            )
+        )
+        rows.append(
+            _legend_row(
+                _legend_bubble(vc["icon_station"], vc["color_stations"], size_px + 3),
+                names["stations"],
+            )
+        )
+    return rows
+
+
+def _line_rows(vc, size_px, with_transit, with_network, with_river):
+    """Les limites, les reseaux et la riviere reellement traces sur la carte."""
+    names = vc["layer_names"]
+    rows = [
+        _legend_row(
+            _legend_line(vc["color_study_outline"], vc["style_study_outline_weight"]),
+            names["study_outline"],
+        ),
+        _legend_row(
+            _legend_line(
+                vc["color_municipal_limits"], vc["style_municipal_limits_weight"]
+            ),
+            names["municipal_limits"],
+        ),
+    ]
+    if with_network:
+        rows.append(
+            _legend_row(
+                _legend_line(
+                    vc["color_network_casing"], vc["style_network_casing_weight"]
+                ),
+                names["walk_network"],
+            )
+        )
+    if with_transit:
+        rows.append(
+            _legend_row(
+                _legend_line(
+                    vc["color_stations"], vc["style_train_line_weight"], dashed=True
+                ),
+                names["train_lines"],
+            )
+        )
+    if with_river:
+        rows.append(
+            _legend_row(_legend_patch(vc["color_river"], size_px), names["river"])
+        )
+    return rows
+
+
+def _add_legend(web_map, vc, source_note, with_transit, with_network, with_river):
+    """Ajoute la legende complete de la carte, tout ce qui y est trace et rien d'autre.
+
+    La couleur de la cote vaut au meme titre pour une residence, pour un groupe de
+    residences et pour un secteur, la legende le dit une seule fois. Les reperes du
+    transport n'apparaissent que sur la carte du transport, comme sur la carte elle meme.
+    La legende est placee du cote oppose a la barre d'echelle pour ne pas la couvrir.
+    """
+    size_px = vc["size_legend_swatch"]
+    sections = [
+        (vc["legend_title"], _quality_rows(vc, size_px), vc["legend_quality_note"]),
+        (vc["legend_sector_title"], _sector_rows(vc), ""),
+        (
+            vc["legend_marker_title"],
+            _marker_rows(vc, size_px, with_transit),
+            "",
+        ),
+        (
+            vc["legend_line_title"],
+            _line_rows(vc, size_px, with_transit, with_network, with_river),
+            "",
+        ),
+    ]
+    blocks = []
+    for title, rows, note in sections:
+        blocks.append(f'<div style="font-weight:bold;margin:6px 0 3px;">{title}</div>')
+        blocks.extend(rows)
+        if note:
+            blocks.append(
+                f'<div style="color:#444;font-size:'
+                f'{vc["size_legend_note_font"]}px;margin:1px 0 0;">{note}</div>'
+            )
+    html = (
+        f'<div style="position:fixed;bottom:12px;left:12px;z-index:9999;'
+        f"background:rgba(255,255,255,0.93);padding:8px 12px;border:1px solid #999;"
+        f"border-radius:4px;font-family:system-ui,Arial,sans-serif;"
+        f'font-size:{vc["size_legend_font"]}px;width:{vc["size_legend_box"]}px;'
+        f'max-height:{vc["size_legend_max_height"]}px;overflow-y:auto;">'
+        + "".join(blocks)
+        + f'<div style="margin-top:8px;padding-top:6px;border-top:1px solid #ccc;'
+        f'color:#444;font-size:{vc["size_legend_note_font"]}px;">{source_note}</div>'
+        f"</div>"
+    )
+    web_map.get_root().html.add_child(folium.Element(html))
+
+
+class MetricScale(MacroElement):
+    """Barre d'echelle en metres seulement, ajoutee apres la creation de la carte.
+
+    L'echelle de folium affiche les pieds en plus des metres et se place en bas a gauche,
+    la ou se trouve la legende du projet. Celle ci est donc metrique seulement, le projet
+    mesure tout en metres, et elle est placee du cote oppose a la legende. Le passage par un
+    MacroElement garantit que le script s'execute apres la creation de la carte.
+    """
+
+    _template = Template("""
+        {% macro script(this, kwargs) %}
+        L.control.scale({
+            metric: true,
+            imperial: false,
+            position: "{{ this.position }}",
+            maxWidth: {{ this.max_width }}
+        }).addTo({{ this._parent.get_name() }});
+        {% endmacro %}
+        """)
+
+    def __init__(self, position, max_width):
+        super().__init__()
+        self._name = "MetricScale"
+        self.position = position
+        self.max_width = max_width
+
+
+def _add_scale(web_map, vc):
+    """Ajoute la barre d'echelle metrique du cote oppose a la legende."""
+    web_map.add_child(MetricScale(vc["scale_position"], vc["scale_max_width"]))
 
 
 def _add_study_outline(web_map, zone_gdf, geographic_crs, group_name, color, weight):
@@ -292,7 +572,9 @@ def _add_sectors(
 
     Chaque secteur est la meilleure aire de diffusion d'une municipalite. Le polygone et le
     carre prennent la couleur de la cote qualitative moyenne du secteur. Un clic affiche la
-    ville, l'aire, la cote moyenne sur 100, la cote qualitative et le nombre de points.
+    ville, l'aire, la cote moyenne sur 100, la cote qualitative et le nombre de points. Le
+    centroide est calcule dans le CRS projete puis ramene en degres, comme dans le tableau
+    exporte, pour que le carre et la ligne du tableau tombent au meme endroit.
     """
     if sectors_gdf is None or len(sectors_gdf) == 0:
         return
@@ -300,6 +582,9 @@ def _add_sectors(
     default_color = vc["color_residence_default"]
     group = folium.FeatureGroup(name=group_name)
     display = _to_display(sectors_gdf, geographic_crs)
+    display["centroid"] = _to_display(
+        sectors_gdf.geometry.centroid, geographic_crs
+    ).to_numpy()
     folium.GeoJson(
         display[["mean_quality", "geometry"]].to_json(),
         style_function=lambda feature: {
@@ -315,7 +600,7 @@ def _add_sectors(
     ).add_to(group)
     for _, row in display.iterrows():
         color = quality_colors.get(row["mean_quality"], default_color)
-        centroid = row.geometry.centroid
+        centroid = row["centroid"]
         popup_html = (
             f"<b>{group_name}</b><br>{row['municipality']}<br>"
             f"Aire de diffusion, {row['ad_id']}<br>"
@@ -480,9 +765,11 @@ def lever_map(
     site_sectors,
     visual_config,
     geographic_crs,
+    target_crs,
     path,
-    station_field="nom_gare",
-    line_field="nom_train",
+    stop_field,
+    station_field,
+    line_field,
     logger=None,
 ):
     """Carte du levier, residences en clusters plus les meilleurs secteurs mis en evidence.
@@ -492,13 +779,15 @@ def lever_map(
     ajoute les arrets, les gares et les lignes, l'appelant passe alors ces couches, sinon
     None. La meilleure aire de diffusion d'adresses existantes et la meilleure aire ou
     implanter des logements de chaque municipalite ressortent en polygones remplis colores
-    par leur cote moyenne, avec un carre pictogramme au centroide.
+    par leur cote moyenne, avec un carre pictogramme au centroide. Le titre, la legende, la
+    barre d'echelle et la note de source completent la carte.
     """
     vc = visual_config
     names = vc["layer_names"]
     icons = vc["service_icons"]
     icon_ratio = vc["size_icon_ratio"]
     offset = vc["size_sector_marker_offset"]
+    with_transit = stops_gdf is not None
     web_map = _base_map(zone_gdf, vc, geographic_crs)
     _add_base_layers(
         web_map,
@@ -527,7 +816,7 @@ def lever_map(
         services_gdf,
         geographic_crs,
         names["services"],
-        lambda row: icons.get(row["service_type"], "fa-circle"),
+        lambda row: icons.get(row["service_type"], vc["icon_service_default"]),
         vc["color_services"],
         vc["service_labels"],
         vc["size_service_marker"],
@@ -541,7 +830,7 @@ def lever_map(
         names["stops"],
         vc["icon_stop"],
         vc["color_stops"],
-        "stop_name",
+        stop_field,
         vc["size_stop_bubble"],
         icon_ratio,
     )
@@ -575,4 +864,15 @@ def lever_map(
         vc,
     )
     folium.LayerControl(collapsed=False).add_to(web_map)
+    mode_key = "map_subtitle_transit" if with_transit else "map_subtitle_walk"
+    _add_title(web_map, vc["map_title"], vc[mode_key], vc)
+    _add_legend(
+        web_map,
+        vc,
+        vc["map_source_note"].format(crs=target_crs),
+        with_transit,
+        network_edges is not None and len(network_edges) > 0,
+        water_gdf is not None and len(water_gdf) > 0,
+    )
+    _add_scale(web_map, vc)
     _save(web_map, path, logger)

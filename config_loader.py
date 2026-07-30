@@ -24,6 +24,8 @@ REQUIRED_KEYS = [
     "geographic_crs",
     "source_crs",
     "study_area",
+    "walk_network",
+    "residential_buildings",
     "quality_bands",
     "band_fractions",
     "overall_quality_ratios",

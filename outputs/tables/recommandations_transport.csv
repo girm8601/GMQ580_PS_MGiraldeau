@@ -1,9 +1,9 @@
 type,municipality,ad_id,mean_score_percent,mean_quality,n_points,latitude,longitude
-adresse existante,Mont-Saint-Hilaire,2021S051224570200,91.0,Excellent,220,45.52945,-73.178137
-adresse existante,Otterburn Park,2021S051224570044,89.0,Excellent,250,45.547326,-73.200664
-adresse existante,Beloeil,2021S051224570062,83.8,Excellent,101,45.555741,-73.224137
-adresse existante,McMasterville,2021S051224570068,75.7,Très bien,125,45.549528,-73.226633
+adresse existante,Mont-Saint-Hilaire,2021S051224570200,85.8,Excellent,220,45.52945,-73.178137
+adresse existante,Otterburn Park,2021S051224570044,83.3,Excellent,250,45.547326,-73.200664
+adresse existante,Beloeil,2021S051224570059,75.0,Très bien,97,45.558605,-73.206467
+adresse existante,McMasterville,2021S051224570068,66.7,Très bien,125,45.549528,-73.226633
 site a implanter,Mont-Saint-Hilaire,2021S051224570231,97.2,Excellent,1,45.569052,-73.184756
-site a implanter,Beloeil,2021S051224570059,96.6,Excellent,1,45.558605,-73.206467
-site a implanter,Otterburn Park,2021S051224570052,48.1,Bien,1,45.535098,-73.219543
-site a implanter,McMasterville,2021S051224570254,33.8,Acceptable,1,45.54798,-73.241662
+site a implanter,Beloeil,2021S051224570059,94.3,Excellent,1,45.558605,-73.206467
+site a implanter,Otterburn Park,2021S051224570052,45.3,Bien,1,45.535098,-73.219543
+site a implanter,McMasterville,2021S051224570254,32.1,Acceptable,1,45.54798,-73.241662

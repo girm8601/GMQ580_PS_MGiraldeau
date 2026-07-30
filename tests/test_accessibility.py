@@ -1,14 +1,10 @@
-# Objectif, verifier la cote sur 100 par residence et l'acces au transport sur
-# des donnees synthetiques aux reponses connues.
+# Objectif, verifier la cote sur 100 par residence sur des donnees synthetiques aux
+# reponses connues. L'acces par le transport est couvert par test_transit.py.
 
 from src.processing.accessibility import (
     band_label,
     overall_quality_label,
     residence_scores,
-)
-from src.processing.transit_access import (
-    effective_transit_distance,
-    has_transit_access,
 )
 
 # Paliers repris de config.yaml pour les aines, distance max en metres et libelle.
@@ -77,21 +73,3 @@ def test_residence_scores_dispersion():
     assert 0.0 < row2["score_percent"] < 100.0
     # la distance minimale reste affichee meme au dela des seuils.
     assert row3["distance_pharmacy_km"] == 2.0
-
-
-def test_transit_access():
-    """L'acces au transport doit respecter strictement le seuil."""
-    assert has_transit_access(400, 500) is True
-    assert has_transit_access(500, 500) is True
-    assert has_transit_access(501, 500) is False
-    assert has_transit_access(None, 500) is False
-
-
-def test_effective_transit_distance():
-    """La distance effective additionne les deux marches quand elles sont courtes."""
-    # marche directe 1500 m, mais 300 m vers l'arret et 200 m de l'arret au service.
-    assert effective_transit_distance(1500, 300, 200, 500) == 500
-    # si la marche vers l'arret depasse le seuil, on garde la marche directe.
-    assert effective_transit_distance(1500, 700, 200, 500) == 1500
-    # si le service est deja proche a pied, on garde la marche directe.
-    assert effective_transit_distance(250, 300, 200, 500) == 250

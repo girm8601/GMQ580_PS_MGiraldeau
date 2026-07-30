@@ -67,6 +67,23 @@ def check_zone_overlap(gdf, zone_gdf):
     return overlap_count > 0, f"{overlap_count} entite(s) dans la zone d'etude"
 
 
+def check_bounds(gdf, zone_gdf):
+    """Verifie que l'emprise de la couche recoupe celle de la zone d'etude.
+
+    Cette regle attrape les coordonnees inversees et les valeurs aberrantes, qui donnent
+    une emprise sans rapport avec le territoire etudie. Une couche peut avoir le bon CRS
+    declare et se trouver quand meme a l'autre bout du monde.
+    """
+    minx, miny, maxx, maxy = gdf.total_bounds
+    zminx, zminy, zmaxx, zmaxy = zone_gdf.total_bounds
+    disjoint = maxx < zminx or minx > zmaxx or maxy < zminy or miny > zmaxy
+    detail = (
+        f"emprise {round(minx)} {round(miny)} {round(maxx)} {round(maxy)}, "
+        f"zone {round(zminx)} {round(zminy)} {round(zmaxx)} {round(zmaxy)}"
+    )
+    return not disjoint, detail
+
+
 def fix_invalid_geometries(gdf, layer_name, logger):
     """Corrige les geometries invalides avec buffer(0) et journalise la correction."""
     present = gdf.geometry.notna() & ~gdf.geometry.is_empty
@@ -105,6 +122,7 @@ def audit_layer(gdf, layer_name, expected_crs, required_fields=None, zone=None):
     if required_fields:
         add("required_fields", *check_required_fields(gdf, required_fields))
     if zone is not None:
+        add("expected_bounds", *check_bounds(gdf, zone))
         add("zone_overlap", *check_zone_overlap(gdf, zone))
     return rows
 

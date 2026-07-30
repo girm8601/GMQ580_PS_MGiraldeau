@@ -76,7 +76,7 @@ def test_service_addition_effect_keeps_coordinates():
                 "site_id": "",
                 "latitude": "",
                 "longitude": "",
-                "covered_percent": 0.0,
+                "weighted_covered_percent": 20.0,
             },
             {
                 "n_services": 1,
@@ -86,7 +86,7 @@ def test_service_addition_effect_keeps_coordinates():
                 "site_id": 3,
                 "latitude": 45.567,
                 "longitude": -73.201,
-                "covered_percent": 25.0,
+                "weighted_covered_percent": 25.0,
             },
         ]
     )
@@ -94,6 +94,9 @@ def test_service_addition_effect_keeps_coordinates():
     assert len(effect) == 1
     assert effect.iloc[0]["added_type"] == "a"
     assert effect.iloc[0]["latitude"] == 45.567
+    # Le gain se mesure depuis la ligne de depart, ecartee du tableau mais gardee en
+    # reference. Sans cette colonne le lecteur ne verrait qu'un niveau, jamais un gain.
+    assert effect.iloc[0]["gain_percent"] == 5.0
     assert list(effect.columns) == [
         "group",
         "n_services",
@@ -102,7 +105,8 @@ def test_service_addition_effect_keeps_coordinates():
         "latitude",
         "longitude",
         "threshold_m",
-        "covered_percent",
+        "weighted_covered_percent",
+        "gain_percent",
     ]
 
 

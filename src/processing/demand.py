@@ -100,6 +100,15 @@ def prepare_demand(layers, config, logger):
     joined = gpd.sjoin(
         residences, areas[[join_field, "geometry"]], how="left", predicate="within"
     ).drop(columns="index_right")
+    without_area = int(joined[join_field].isna().sum())
+    if without_area > 0:
+        # Une residence posee juste sur la limite de deux aires ne tombe dans aucune.
+        # Sans cette ligne, le compte final ne concorderait plus avec le compte precedent.
+        logger.info(
+            "Residences ecartees faute d'aire de diffusion, %d sur %d",
+            without_area,
+            len(joined),
+        )
     joined = joined[joined[join_field].notna()].copy()
     joined = distribute_demand_to_residences(joined, areas, join_field)
     return areas, joined.reset_index(drop=True)

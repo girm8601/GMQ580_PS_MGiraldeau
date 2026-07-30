@@ -79,18 +79,29 @@ overall_quality_ratios:             # [ratio minimal du pourcentage, libelle]
   - [0.00, "Insuffisant"]
 
 # --- Acces au transport collectif (reseau fixe) ---
+# Un deplacement par le transport est une marche vers l'arret de depart, un trajet
+# d'autobus ou de train sans transfert, puis une marche de l'arret d'arrivee vers le
+# service. Le seuil porte sur la somme des deux marches, le trajet lui meme ne compte
+# pas. Les deux arrets doivent appartenir a la meme ligne.
 transit:
-  max_stop_distance_seniors_m: 800     # marche max vers un arret pour un aine, sa distance acceptable
-  max_stop_distance_rest_m: 1000       # marche max vers un arret pour le reste de la population
+  max_total_walk_seniors_m: 800     # marche totale acceptable d'un aine, les deux marches additionnees
+  max_total_walk_rest_m: 1000       # marche totale acceptable du reste de la population
   fixed_route_types: [3]            # GTFS, 3 = autobus (reseau fixe)
   demand_route_types: [1501]        # GTFS, 1501 = sur reservation (a la demande, exclu)
-  lat_field: "stop_lat"
-  lon_field: "stop_lon"
   relevant_stations: ["Gare McMasterville", "Gare Mont-Saint-Hilaire"]
   context_train_line: "Ligne Mont-Saint-Hilaire"
   station_name_field: "nom_gare"    # nom de gare, fichier des gares exo
   line_name_field: "nom_train"      # nom de ligne, fichier des lignes exo
   line_id_field: "no_train"         # identifiant de ligne, cle de deduplication
+  # Noms de champs du standard GTFS, regroupes ici pour qu'aucun ne soit code en dur.
+  gtfs_fields:
+    route_id: "route_id"
+    route_type: "route_type"
+    trip_id: "trip_id"
+    stop_id: "stop_id"
+    stop_name: "stop_name"
+    stop_lat: "stop_lat"
+    stop_lon: "stop_lon"
 
 # --- Demande et vulnerabilite ---
 vulnerability:
@@ -133,8 +144,11 @@ essential_services:
     shop: ["convenience"]
 
 # --- Optimisation (spopt, couverture maximale) ---
-# Le noyau de couverture maximale sert seulement a la validation qui montre que l'ajout de
-# services essentiels ne rapporte pas assez pour etre la solution, pour les deux groupes.
+# Le noyau de couverture maximale sert a la validation qui montre que l'ajout de services
+# essentiels n'est pas la solution, pour les deux groupes. Il sert de deux facons. Une fois
+# par etape de l'assortiment, ou il place un seul service sur la demande encore non
+# couverte. Une fois pour la borne superieure, ou il place les n_service_check services
+# d'un coup et donne le vrai optimum.
 optimization:
   n_service_check: 5                           # services testes pour la validation d'ajout ecarte, de 1 a 5
   coverage_threshold_seniors_m: 800            # un aine est couvert si le service est a moins de 800 m
@@ -177,6 +191,25 @@ visualization:
   map_zoom_start: 13
   map_tiles: "cartodbpositron"
   font_awesome_cdn: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  # Titre, legende et note de source des cartes, les elements d'une carte thematique.
+  # La fleche du nord est inutile, le nord d'une carte web est toujours en haut.
+  map_title: "Où vieillir à pied dans la Vallée du Richelieu"
+  map_subtitle_walk: "Meilleurs secteurs pour les aînés, à la marche seulement"
+  map_subtitle_transit: "Meilleurs secteurs pour les aînés, avec le transport collectif"
+  map_source_note: "Sources, OpenStreetMap, Statistique Canada 2021, Données Québec et exo. Projection {crs}."
+  # La legende liste tout ce qui est trace sur la carte et rien d'autre. Les reperes du
+  # transport n'apparaissent que sur la carte du transport.
+  legend_title: "Cote d'accessibilité"
+  legend_quality_note: "La couleur vaut pour une résidence, un groupe et un secteur"
+  legend_sector_title: "Secteurs recommandés"
+  legend_marker_title: "Repères"
+  legend_line_title: "Limites et réseaux"
+  legend_cluster_label: "Groupe de résidences, le nombre est son compte"
+  legend_cluster_sample: 12          # nombre montre en exemple dans la bulle de la legende
+  legend_service_label: "Services essentiels, un pictogramme par type"
+  # Barre d'echelle, en metres seulement et a droite pour laisser la gauche a la legende.
+  scale_position: "bottomright"
+  scale_max_width: 140
   # Couleurs, en noms CSS.
   color_stops: "gray"              # bulle grise, arrets d'autobus
   color_stations: "black"          # bulle noire, gares et lignes de train
@@ -214,6 +247,7 @@ visualization:
     residences: "Résidences"
     address_sectors: "Meilleurs secteurs d'adresses existantes"
     site_sectors: "Meilleurs secteurs où implanter des logements"
+  icon_service_default: "fa-circle"  # repere d'un type de service sans pictogramme defini
   # Pictogrammes FontAwesome par type de service, en reperes (marker).
   service_icons:
     pharmacy: "fa-pills"
@@ -244,6 +278,15 @@ visualization:
   size_sector_marker_offset: 20      # ecart horizontal des deux carres, pour qu'ils restent lisibles sur une meme aire
   size_cluster_marker: 40            # bulle ronde d'un cluster de residences
   size_icon_ratio: 0.55
+  # Titre et legende de la carte, tailles en pixels.
+  size_title_font: 15
+  size_subtitle_font: 12
+  size_title_box: 520
+  size_legend_font: 12
+  size_legend_note_font: 10
+  size_legend_box: 240             # largeur fixe de la legende, en pixels
+  size_legend_swatch: 12           # cote d'un carre de couleur ou d'un pictogramme
+  size_legend_max_height: 560      # au dela, la legende defile plutot que de sortir de l'ecran
   # Largeur maximale des infobulles, en pixels.
   size_popup_service: 220
   size_popup_sector: 240
@@ -269,7 +312,7 @@ visualization:
   chart_dpi: 150
   chart_figsize_bar: [7, 5]          # taille d'un panneau de couverture, largeur totale selon le nombre de panneaux
   chart_figsize_gain: [6, 4.5]       # taille d'un panneau de gain
-  chart_zoom_margin: 2.0             # marge verticale (%) resserree sur les valeurs de la courbe de gain
+  chart_gain_y_limits: [0, 100]      # echelle verticale complete de la courbe de gain, la faiblesse du gain doit se voir
   chart_marker: "o"
   chart_grid_alpha: 0.3
   color_chart_bar: "#185FA5"         # bleu, barres de couverture
@@ -278,8 +321,9 @@ visualization:
     rest: "Reste de la population"
   label_chart_bar_xaxis: "Demande couverte à pied (%)"
   label_chart_gain_xaxis: "Nombre de services ajoutés"
-  label_chart_gain_yaxis: "Demande couverte (%)"
+  label_chart_gain_yaxis: "Demande couverte, pondérée sur les neuf services (%)"
   title_coverage: "Couverture actuelle par type de service selon l'ordre de préférence de chaque groupe"
+  title_coverage_panel: "{group}, seuil de {threshold} m"   # titre d'un panneau, le seuil differe par groupe
   title_chart_gain: "Gain de couverture selon le nombre de services ajoutés"
 
 # --- Colonnes et etiquettes OpenStreetMap conservees au telechargement ---
@@ -339,6 +383,59 @@ report:
     diagnostic: "1. Diagnostic d'équité"
     validation: "2. Validation des pistes écartées"
     lever: "3. Levier, la solution retenue"
+  # Le rapport PDF est le document de diffusion, tout ce qu'il affiche est en francais. Les
+  # tableaux CSV gardent leurs cles anglaises, ils sont lus par une machine. Les libelles
+  # sont volontairement courts, sinon les colonnes se chevauchent dans la page.
+  column_labels:
+    service_type: "Service"
+    group: "Groupe"
+    population: "Groupe"
+    mode: "Mode"
+    threshold_m: "Seuil (m)"
+    covered_percent: "Couverture (%)"
+    weighted_covered_percent: "Couverture pondérée (%)"
+    gain_percent: "Gain (%)"
+    seniors_walk_percent: "Aînés, marche (%)"
+    rest_walk_percent: "Reste, marche (%)"
+    seniors_transit_percent: "Aînés, transport (%)"
+    rest_transit_percent: "Reste, transport (%)"
+    diff_walk_percent: "Écart marche (%)"
+    diff_transit_percent: "Écart transport (%)"
+    n_services: "Rang de l'ajout"
+    n_added: "Services ajoutés"
+    added_type: "Service ajouté"
+    site_id: "Site"
+    site_ids: "Sites optimaux"
+    covered_before_percent: "Avant (%)"
+    covered_after_percent: "Après (%)"
+    latitude: "Latitude"
+    longitude: "Longitude"
+    covered_with_bridges_persons: "Couverts avec ponts"
+    covered_without_bridges_persons: "Couverts sans ponts"
+    group_total_persons: "Total du groupe"
+    barrier_effect_persons: "Effet (personnes)"
+    barrier_effect_percent: "Effet (%)"
+    type: "Type de secteur"
+    municipality: "Municipalité"
+    ad_id: "Aire de diffusion"
+    mean_score_percent: "Cote moyenne (/100)"
+    mean_quality: "Cote qualitative"
+    n_points: "Nombre de points"
+  # Valeurs affichees dans les cellules, memes cles internes qu'ailleurs.
+  value_labels:
+    seniors: "Aînés"
+    rest: "Reste de la population"
+    marche: "Marche"
+    marche_transport: "Marche et transport"
+    pharmacy: "Pharmacie"
+    school: "École"
+    kindergarten: "Garderie"
+    bank: "Banque"
+    health: "Santé"
+    dentist: "Dentiste"
+    veterinary: "Vétérinaire"
+    supermarket: "Épicerie"
+    convenience: "Dépanneur"
 
 # --- Chemins ---
 paths:
@@ -385,6 +482,7 @@ paths:
     coverage: "couverture_actuelle.csv"
     comparison: "ecart_aines_reste.csv"
     service_addition: "effet_ajout_services.csv"
+    addition_bound: "borne_ajout_services.csv"
     barrier: "effet_barriere.csv"
     crossing_bridges: "ponts_traversants.csv"
     recommendation_walk: "recommandations_marche.csv"

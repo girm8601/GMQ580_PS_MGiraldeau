@@ -38,8 +38,10 @@ def coverage_summary(
 ):
     """Part couverte par type, par groupe et par mode, aux seuils de couverture.
 
-    Le groupe seniors utilise le poids d'aines et le transport a 800 m, le groupe rest est
-    le reste de la population, poids du reste et transport a 1000 m.
+    Le groupe seniors utilise le poids d'aines et une marche totale de 800 m par le
+    transport, le groupe rest est le reste de la population, poids du reste et marche
+    totale de 1000 m. Chaque part passe par les memes trois fonctions elementaires que
+    les tests couvrent, residences couvertes, poids couvert puis taux.
     """
     thr_seniors = config["optimization"]["coverage_threshold_seniors_m"]
     thr_rest = config["optimization"]["coverage_threshold_rest_m"]
@@ -75,25 +77,23 @@ def coverage_summary(
             [ref_rest, thr_rest],
         ),
     ]
+    working = residences.copy()
     rows = []
     for population, weight_field, mode, distances_all, thresholds in plans:
-        total = float(residences[weight_field].sum())
         for service_type, distances in distances_all.items():
             for threshold in thresholds:
-                covered = sum(
-                    getattr(row, weight_field)
-                    for row in residences.itertuples()
-                    if distances.get(row.residence_id) is not None
-                    and distances.get(row.residence_id) <= threshold
+                covered = residences_covered(distances, threshold)
+                working["covered"] = (
+                    working["residence_id"].map(covered).fillna(False).astype(bool)
                 )
-                percent = 100.0 * covered / total if total else 0.0
+                rate = coverage_rate(working, "covered", weight_field)
                 rows.append(
                     {
                         "population": population,
                         "mode": mode,
                         "service_type": service_type,
                         "threshold_m": threshold,
-                        "covered_percent": round(percent, 1),
+                        "covered_percent": round(100.0 * rate, 1),
                     }
                 )
     return pd.DataFrame(rows)

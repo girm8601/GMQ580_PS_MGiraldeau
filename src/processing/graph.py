@@ -26,16 +26,6 @@ def distances_from_sources(graph, source_nodes, cutoff=None, weight="length"):
     )
 
 
-def shortest_distance(graph, source, target, weight="length"):
-    """Distance du plus court chemin entre deux noeuds, None si aucun chemin."""
-    try:
-        return nx.shortest_path_length(
-            graph, source, target, weight=weight, method="dijkstra"
-        )
-    except nx.NetworkXNoPath:
-        return None
-
-
 def nearest_graph_nodes(graph, points_gdf):
     """Associe chaque point au noeud du graphe le plus proche (graphe projete).
 

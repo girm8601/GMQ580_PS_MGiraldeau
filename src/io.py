@@ -4,8 +4,11 @@ Toutes les couches du projet sont ramenees au CRS cible commun defini dans
 config.yaml (EPSG:2950, NAD83(CSRS) / MTM zone 8) avant analyse, pour eviter
 les jointures spatiales silencieusement fausses. Le CRS n'est pas code en dur
 ici, chaque appelant le recoit de la configuration (config_loader.py). Les
-coordonnees des tableaux exportes repassent en degres par ce meme module.
+coordonnees des tableaux exportes repassent en degres par ce meme module, et
+les couches intermediaires verifiables dans QGIS s'ecrivent ici aussi.
 """
+
+import os
 
 import geopandas as gpd
 
@@ -31,3 +34,20 @@ def latitude_longitude(geometries, geographic_crs, precision):
     """
     points = gpd.GeoSeries(geometries).to_crs(geographic_crs)
     return points.y.round(precision), points.x.round(precision)
+
+
+def save_layer(gdf, config, key, logger=None):
+    """Ecrit une couche intermediaire en GeoPackage, verifiable dans QGIS.
+
+    key nomme le fichier dans paths.processed_files. Le dossier est cree au besoin.
+    """
+    path = os.path.join(
+        config["paths"]["data_processed"],
+        config["paths"]["processed_files"][key],
+    )
+    folder = os.path.dirname(path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    gdf.to_file(path, driver="GPKG")
+    if logger is not None:
+        logger.info("Couche intermediaire ecrite, %s, %d entite(s)", path, len(gdf))

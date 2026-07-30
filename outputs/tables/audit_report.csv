@@ -11,12 +11,14 @@ dissemination_areas,valid_geometries,ok,0 geometrie(s) invalide(s)
 dissemination_areas,no_empty_geometries,ok,0 geometrie(s) vide(s)
 dissemination_areas,no_duplicates,ok,0 doublon(s)
 dissemination_areas,required_fields,ok,champs requis presents
+dissemination_areas,expected_bounds,ok,"emprise 323136 5041240 333801 5054859, zone 323140 5041260 333798 5054906"
 dissemination_areas,zone_overlap,ok,82 entite(s) dans la zone d'etude
 bus_stops,expected_crs,ok,CRS conforme (EPSG:2950)
 bus_stops,not_empty,ok,193 entite(s)
 bus_stops,valid_geometries,ok,0 geometrie(s) invalide(s)
 bus_stops,no_empty_geometries,ok,0 geometrie(s) vide(s)
 bus_stops,no_duplicates,ok,0 doublon(s)
+bus_stops,expected_bounds,ok,"emprise 325860 5043088 332550 5050656, zone 323140 5041260 333798 5054906"
 bus_stops,zone_overlap,ok,193 entite(s) dans la zone d'etude
 train_stations,expected_crs,ok,CRS conforme (EPSG:2950)
 train_stations,not_empty,ok,2 entite(s)
@@ -36,12 +38,14 @@ essential_services,valid_geometries,ok,0 geometrie(s) invalide(s)
 essential_services,no_empty_geometries,ok,0 geometrie(s) vide(s)
 essential_services,no_duplicates,ok,0 doublon(s)
 essential_services,required_fields,ok,champs requis presents
+essential_services,expected_bounds,ok,"emprise 325241 5043968 331476 5050796, zone 323140 5041260 333798 5054906"
 essential_services,zone_overlap,ok,89 entite(s) dans la zone d'etude
 residences,expected_crs,ok,CRS conforme (EPSG:2950)
 residences,not_empty,ok,17594 entite(s)
 residences,valid_geometries,ok,0 geometrie(s) invalide(s)
 residences,no_empty_geometries,ok,0 geometrie(s) vide(s)
 residences,no_duplicates,ok,0 doublon(s)
+residences,expected_bounds,ok,"emprise 323147 5042430 333184 5053886, zone 323140 5041260 333798 5054906"
 residences,zone_overlap,ok,17594 entite(s) dans la zone d'etude
 water,expected_crs,ok,CRS conforme (EPSG:2950)
 water,not_empty,ok,26 entite(s)
@@ -53,16 +57,19 @@ commercial,not_empty,ok,114 entite(s)
 commercial,valid_geometries,ok,0 geometrie(s) invalide(s)
 commercial,no_empty_geometries,ok,0 geometrie(s) vide(s)
 commercial,no_duplicates,ok,0 doublon(s)
+commercial,expected_bounds,ok,"emprise 325170 5044381 332901 5050967, zone 323140 5041260 333798 5054906"
 commercial,zone_overlap,ok,114 entite(s) dans la zone d'etude
 development,expected_crs,ok,CRS conforme (EPSG:2950)
 development,not_empty,ok,10 entite(s)
 development,valid_geometries,ok,0 geometrie(s) invalide(s)
 development,no_empty_geometries,ok,0 geometrie(s) vide(s)
 development,no_duplicates,ok,0 doublon(s)
+development,expected_bounds,ok,"emprise 324943 5043551 329642 5050929, zone 323140 5041260 333798 5054906"
 development,zone_overlap,ok,10 entite(s) dans la zone d'etude
 residential,expected_crs,ok,CRS conforme (EPSG:2950)
 residential,not_empty,ok,325 entite(s)
 residential,valid_geometries,ok,0 geometrie(s) invalide(s)
 residential,no_empty_geometries,ok,0 geometrie(s) vide(s)
 residential,no_duplicates,ok,0 doublon(s)
+residential,expected_bounds,ok,"emprise 324550 5042403 332272 5053695, zone 323140 5041260 333798 5054906"
 residential,zone_overlap,ok,325 entite(s) dans la zone d'etude

@@ -1,0 +1,17 @@
+# Fins de ligne normalisees pour tout le depot.
+# Sans ce fichier, un fichier ecrit sous Windows apparait modifie sur une autre
+# machine et le moindre commit reecrit tout le depot. Le texte est stocke et
+# extrait en LF partout, les binaires sont laisses intacts.
+* text=auto eol=lf
+
+# Binaires, jamais convertis.
+*.png binary
+*.pdf binary
+*.pptx binary
+*.docx binary
+*.xlsx binary
+*.gpkg binary
+*.graphml binary
+*.shp binary
+*.dbf binary
+*.shx binary
