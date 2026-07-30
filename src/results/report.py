@@ -29,6 +29,11 @@ MONTHS = [
     "décembre",
 ]
 
+BOUND_TABLE_TITLE = (
+    "Meilleure implantation possible de cinq services d'un même type, "
+    "couverture de ce seul type"
+)
+
 INTRO = {
     "diagnostic": (
         "Ce volet mesure l'accès à pied des aînés aux services essentiels, puis le compare "
@@ -37,12 +42,23 @@ INTRO = {
     ),
     "validation": (
         "Ce volet vérifie deux pistes de solution avant de retenir la bonne. Il chiffre le "
-        "gain de l'ajout de nouveaux services et l'effet de barrière de la rivière."
+        "gain de l'ajout de nouveaux services et l'effet de barrière de la rivière. "
+        "L'ajout est chiffré deux fois. La figure et le premier tableau suivent un "
+        "scénario réaliste, les services sont ajoutés un à la fois dans l'ordre où chacun "
+        "rapporte le plus, et la couverture est pondérée sur les neuf services. Le second "
+        "tableau place au contraire les cinq services d'un seul coup par la couverture "
+        "maximale, ce qui donne la meilleure implantation possible. Sa couverture porte "
+        "sur le seul type ajouté, elle ne se compare donc pas à celle de la figure."
     ),
     "lever": (
         "Ce volet propose la solution retenue. Il recommande aux aînés, dans chaque ville, "
         "le meilleur secteur d'adresses déjà existantes et le meilleur secteur où implanter "
-        "du logement, à la marche et au transport."
+        "du logement, à la marche et au transport. Le nombre de points d'un secteur "
+        "d'adresses est son nombre de résidences. Celui d'un secteur de logement est son "
+        "nombre de terrains à développer, parfois un seul. Chaque ville obtient son "
+        "meilleur secteur même lorsque la cote de ce secteur reste insuffisante, car un "
+        "aîné qui tient à cette ville a quand même besoin de connaître le meilleur choix "
+        "qui s'y trouve."
     ),
 }
 
@@ -54,9 +70,15 @@ CONCLUSION = {
         "une solution ciblée."
     ),
     "validation": (
-        "Le gain de l'ajout de services reste faible peu importe le nombre d'ajouts et "
-        "l'effet de barrière de la rivière est négligeable. Aucune de ces deux pistes n'est "
-        "la solution, ce qui ouvre la voie au levier."
+        "Ajouter des services ne suffit pas. Même placés à la meilleure position possible, "
+        "cinq nouveaux services d'un même type laissent la majorité des aînés encore sans "
+        "accès à ce type, et il faudrait recommencer pour chacun des neuf services "
+        "essentiels. Cette piste ne relève pas non plus de la municipalité, un service est "
+        "une entreprise privée. L'effet de barrière de la rivière est de son côté "
+        "négligeable. Aucune de ces deux pistes n'est la solution, ce qui ouvre la voie au "
+        "levier. Celui ci part des services déjà en place et cherche les meilleurs "
+        "secteurs, ceux d'adresses existantes qui donnent un résultat immédiat sans rien "
+        "construire, et ceux où implanter du logement pour ajouter de nouvelles places."
     ),
     "lever": (
         "Ces secteurs d'adresses résidentielles existantes et d'ajout de logements donnent "
@@ -163,10 +185,28 @@ def _add_row(pdf, values, width, style, base_size, min_size):
     pdf.ln(6)
 
 
+def _in_french(df, config):
+    """Traduit les titres de colonnes et les valeurs internes d'un tableau du rapport.
+
+    Le rapport est le document de diffusion, tout ce qu'il affiche est en francais. Les
+    tableaux CSV gardent de leur cote leurs cles anglaises, ils sont lus par une machine.
+    Seules les colonnes de texte sont traduites, les colonnes de nombres restent intactes.
+    """
+    report = config["report"]
+    values = report["value_labels"]
+    translated = df.copy()
+    for column in translated.select_dtypes(include="object").columns:
+        translated[column] = translated[column].map(
+            lambda value: values.get(value, value) if isinstance(value, str) else value
+        )
+    return translated.rename(columns=report["column_labels"])
+
+
 def _add_table(pdf, config, title, df):
     """Insere un tableau, un titre puis l'en-tete et les lignes a largeur egale."""
     if df is None or len(df) == 0:
         return
+    df = _in_french(df, config)
     report = config["report"]
     base_size = report["table_font_size"]
     min_size = report["table_min_font_size"]
@@ -235,8 +275,12 @@ def build_report(config, figures, tables, logger=None):
         [figures.get("gain")],
         [
             (
-                "Effet de chaque ajout de service, par groupe",
+                "Effet de chaque ajout sur la couverture pondérée des neuf services",
                 tables.get("service_addition"),
+            ),
+            (
+                BOUND_TABLE_TITLE,
+                tables.get("addition_bound"),
             ),
             (
                 "Effet de barrière de la rivière par groupe et par service",
