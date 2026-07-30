@@ -89,13 +89,12 @@ def residence_scores(
 
 
 def compute_distances(layers, residences, config, logger):
-    """Distances de marche minimales par type de service et vers le transport.
+    """Distances de marche minimales de chaque residence vers chaque type de service.
 
-    Les distances sont calculees sans borne pour donner la vraie distance minimale
-    vers chaque service, meme au dela des seuils, ce qui evite les valeurs manquantes
-    dans les infobulles. Retourne aussi la meilleure marche d'un arret vers chaque type
-    de service et la marche de chaque noeud vers l'arret le plus proche, reutilisee pour
-    l'acces au transport des residences, des services et des sites candidats.
+    Les distances sont calculees sans borne pour donner la vraie distance minimale vers
+    chaque service, meme au dela des seuils, ce qui evite les valeurs manquantes dans les
+    infobulles. Retourne aussi les noeuds du graphe portant les services de chaque type,
+    reutilises pour l'acces par le transport et pour l'effet de barriere.
     """
     graph = layers["graph"]
     residences = residences.copy()
@@ -104,41 +103,21 @@ def compute_distances(layers, residences, config, logger):
     services = layers["services"].copy()
     services["node"] = nearest_graph_nodes(graph, services)
 
-    access_points = pd.concat(
-        [layers["stops"].geometry, layers["stations"].geometry], ignore_index=True
-    )
-    access_gdf = gpd.GeoDataFrame(geometry=access_points, crs=services.crs)
-    access_nodes = list(nearest_graph_nodes(graph, access_gdf))
-
     distances_by_type = {}
-    stop_to_service = {}
+    nodes_by_type = {}
     for service_type in config["essential_services"]:
-        type_nodes = services.loc[services["service_type"] == service_type, "node"]
-        reached = distances_from_sources(graph, list(type_nodes), cutoff=None)
+        type_nodes = list(
+            services.loc[services["service_type"] == service_type, "node"]
+        )
+        nodes_by_type[service_type] = type_nodes
+        reached = distances_from_sources(graph, type_nodes, cutoff=None)
         distances_by_type[service_type] = {
             row.residence_id: reached.get(row.node) for row in residences.itertuples()
         }
-        stop_distances = [
-            reached.get(node) for node in access_nodes if reached.get(node) is not None
-        ]
-        stop_to_service[service_type] = min(stop_distances) if stop_distances else None
         logger.info(
             "Distances calculees, %s, %d service(s)", service_type, len(type_nodes)
         )
-
-    transit_reached = distances_from_sources(graph, access_nodes, cutoff=None)
-    home_to_stop = {
-        row.residence_id: transit_reached.get(row.node)
-        for row in residences.itertuples()
-    }
-    return (
-        residences,
-        services,
-        distances_by_type,
-        home_to_stop,
-        stop_to_service,
-        transit_reached,
-    )
+    return residences, services, distances_by_type, nodes_by_type
 
 
 def scored_residences(residences, distances_by_type, importance, bands, config):

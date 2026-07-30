@@ -1,61 +1,95 @@
-"""Acces complementaire aux services par le reseau de transport fixe.
+"""Distance effective vers un service, marche seule ou marche plus transport.
 
-Un service peut etre atteint par le transport en marchant de la residence vers un
-arret, en prenant l'autobus, puis en marchant de l'arret d'arrivee vers le service.
-Les deux marches doivent rester courtes, sous le seuil propre au groupe. La distance
-retenue est la plus courte entre la marche directe et cet acces par le transport. Le
-reseau fixe local est traite comme un tout connecte, sans horaires, conformement a la
-decision documentee dans le README. Cette dimension sert au levier transport et a la
-comparaison d'equite.
+Un service peut etre atteint a pied directement, ou par le transport en marchant vers un
+arret, en prenant l'autobus ou le train sans transfert, puis en marchant de l'arret
+d'arrivee vers le service. La marche totale du trajet est la somme des deux marches, et
+elle doit rester sous le total acceptable du groupe, 800 metres pour un aine et 1000
+metres pour le reste de la population. Le trajet a bord ne compte pas dans ce total.
+
+La distance retenue pour la cote d'une residence est la plus courte des deux, la marche
+directe ou la marche totale du trajet. Si le service est plus proche a pied, c'est la
+marche seule qui compte. Le meme calcul sert aux terrains candidats du levier.
 """
 
 from __future__ import annotations
 
 
-def has_transit_access(distance_m, max_distance_m):
-    """Indique si une distance de marche donne acces a un arret du reseau."""
-    if distance_m is None:
-        return False
-    return distance_m <= max_distance_m
+def total_walk(home_walk_m, service_walk_m, max_total_walk_m):
+    """Marche totale d'un trajet, None si une marche manque ou si le total depasse.
 
-
-def effective_transit_distance(
-    walk_distance_m, home_to_stop_m, stop_to_service_m, max_stop_distance_m
-):
-    """Distance effective vers un service en tenant compte du transport.
-
-    home_to_stop_m est la marche de la residence vers l'arret le plus proche.
-    stop_to_service_m est la marche du meilleur arret vers le service. Les deux
-    marches doivent rester sous le seuil pour que le transport soit utilise. Sinon,
-    ou si le transport n'aide pas, la marche directe est conservee.
+    home_walk_m est la marche vers l'arret de depart, service_walk_m la marche de l'arret
+    d'arrivee vers le service. Les deux arrets sont sur la meme ligne.
     """
-    if not has_transit_access(home_to_stop_m, max_stop_distance_m):
+    if home_walk_m is None or service_walk_m is None:
+        return None
+    total = home_walk_m + service_walk_m
+    return total if total <= max_total_walk_m else None
+
+
+def best_route_walk(node, route_walk, walk_by_route, service_type, max_total_walk_m):
+    """Marche totale la plus courte vers un type de service, toutes lignes confondues.
+
+    Chaque ligne est essayee, la marche du noeud vers cette ligne plus la marche de cette
+    ligne vers le service. La meilleure ligne est retenue. Retourne None si aucune ligne
+    ne donne un trajet acceptable.
+    """
+    best = None
+    for route_id, reached in route_walk.items():
+        candidate = total_walk(
+            reached.get(node),
+            walk_by_route.get(route_id, {}).get(service_type),
+            max_total_walk_m,
+        )
+        if candidate is not None and (best is None or candidate < best):
+            best = candidate
+    return best
+
+
+def effective_distance(walk_distance_m, transit_walk_m):
+    """La plus courte entre la marche directe et la marche totale par le transport."""
+    if transit_walk_m is None:
         return walk_distance_m
-    if not has_transit_access(stop_to_service_m, max_stop_distance_m):
-        return walk_distance_m
-    transit_total = home_to_stop_m + stop_to_service_m
     if walk_distance_m is None:
-        return transit_total
-    return min(walk_distance_m, transit_total)
+        return transit_walk_m
+    return min(walk_distance_m, transit_walk_m)
+
+
+def transit_walk_by_node(
+    nodes, route_walk, walk_by_route, service_type, max_total_walk_m
+):
+    """Marche totale la plus courte par le transport, pour chaque noeud demande.
+
+    Le calcul se fait par noeud du graphe et non par point, car plusieurs residences
+    partagent le meme noeud d'accrochage. Cela evite de refaire le meme travail.
+    """
+    return {
+        node: best_route_walk(
+            node, route_walk, walk_by_route, service_type, max_total_walk_m
+        )
+        for node in nodes
+    }
 
 
 def transit_distances_by_type(
-    distances_by_type, home_to_stop, stop_to_service, max_stop
+    distances_by_type, node_by_point, route_walk, walk_by_route, max_total_walk_m
 ):
-    """Distances effectives par type en tenant compte du transport, pour un seuil donne.
+    """Distances effectives par type de service en tenant compte du transport.
 
-    Pour chaque residence, un service peut etre atteint en marchant vers un arret, en
-    prenant l'autobus, puis en marchant de l'arret vers le service. La distance retenue est
-    la plus courte entre cette chaine et la marche directe. max_stop est la marche maximale
-    vers un arret, propre au groupe, 800 m pour les aines et 1000 m pour le reste.
+    distances_by_type donne la marche directe de chaque point vers chaque type de
+    service. node_by_point donne le noeud du graphe de chaque point. max_total_walk_m est
+    la marche totale acceptable du groupe. Retourne la meme structure que l'entree, avec
+    la plus courte des deux distances.
     """
+    nodes = list(dict.fromkeys(node_by_point.values()))
     effective = {}
     for service_type, distances in distances_by_type.items():
-        service_stop = stop_to_service.get(service_type)
+        by_node = transit_walk_by_node(
+            nodes, route_walk, walk_by_route, service_type, max_total_walk_m
+        )
         effective[service_type] = {
-            rid: effective_transit_distance(
-                distances.get(rid), home_to_stop.get(rid), service_stop, max_stop
+            point_id: effective_distance(
+                distance, by_node.get(node_by_point.get(point_id))
             )
-            for rid in distances
+            for point_id, distance in distances.items()
         }
     return effective
