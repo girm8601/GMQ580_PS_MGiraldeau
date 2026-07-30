@@ -2,20 +2,21 @@
 
 main.py enchaine les etapes dans l'ordre du schema du README et delegue tout le
 traitement aux modules de src. Le pipeline suit trois volets, le diagnostic d'equite, la
-validation des pistes ecartees et le levier qui recommande les meilleures adresses et les
-sites a implanter. Un rapport PDF rassemble ensuite les figures et les tableaux. Chaque
-etape est une fonction nommee d'un module de responsabilite, extraction, traitement,
-validation, resultats et visualisation. Lancement, python main.py, apres avoir regenere
-les couches OSM avec download_data.py.
+validation des pistes ecartees et le levier qui recommande les meilleurs secteurs
+d'adresses et de terrains. Un rapport PDF rassemble ensuite les figures et les tableaux.
+Chaque etape est une fonction nommee d'un module de responsabilite, extraction,
+traitement, validation, resultats et visualisation. Lancement, python main.py, apres
+avoir regenere les couches OSM avec download_data.py.
 """
 
 from __future__ import annotations
 
 import os
+import sys
 
 import geopandas as gpd
 
-from config_loader import load_config
+from config_loader import ConfigError, load_config
 from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
 from src.extraction.buildings import load_residences
 from src.extraction.census import load_census_profile
@@ -29,7 +30,13 @@ from src.extraction.reference_layers import (
     load_water,
 )
 from src.extraction.services import load_services
-from src.extraction.transit import load_bus_stops, load_train_lines, load_train_stations
+from src.extraction.transit import (
+    load_bus_stops,
+    load_route_stops,
+    load_train_lines,
+    load_train_stations,
+)
+from src.io import save_layer
 from src.logger import setup_logger
 from src.processing.accessibility import compute_distances, scored_residences
 from src.processing.coverage import coverage_summary
@@ -38,6 +45,7 @@ from src.processing.scenarios import score_development_sites, service_addition_c
 from src.processing.sectors import best_sectors
 from src.processing.study_area import build_zone
 from src.processing.transit_access import transit_distances_by_type
+from src.processing.transit_routes import prepare_route_access
 from src.results.metrics import (
     export_table,
     population_comparison_table,
@@ -45,36 +53,14 @@ from src.results.metrics import (
     service_addition_effect_table,
 )
 from src.results.report import build_report
-from src.validation.audit import fix_invalid_geometries, run_audit
+from src.validation.audit import AuditError, fix_invalid_geometries, run_audit
 from src.validation.bridges import barrier_analysis
 from src.visualization.charts import coverage_chart, gain_curve_chart
-from src.visualization.maps import lever_map, ordered_service_types
-
-
-def save_processed(gdf, config, key, logger):
-    """Ecrit une couche intermediaire verifiable dans QGIS."""
-    path = os.path.join(
-        config["paths"]["data_processed"],
-        config["paths"]["processed_files"][key],
-    )
-    folder = os.path.dirname(path)
-    if folder:
-        os.makedirs(folder, exist_ok=True)
-    gdf.to_file(path, driver="GPKG")
-    logger.info("Couche intermediaire ecrite, %s, %d entite(s)", path, len(gdf))
-
-
-def walk_edges_for_display(graph, config):
-    """Reseau pietonnier simplifie pour l'affichage des cartes."""
-    import osmnx as ox
-
-    edges = ox.graph_to_gdfs(graph, nodes=False).reset_index()
-    if {"u", "v"}.issubset(edges.columns):
-        edges = edges[edges["u"] < edges["v"]]
-    edges = edges[["geometry"]].copy()
-    tolerance = config["visualization"]["map_network_simplify_m"]
-    edges["geometry"] = edges.geometry.simplify(tolerance)
-    return edges
+from src.visualization.maps import (
+    lever_map,
+    ordered_service_types,
+    walk_edges_for_display,
+)
 
 
 def load_all_layers(config, logger):
@@ -93,6 +79,7 @@ def load_all_layers(config, logger):
         "residential": residential,
         "census": load_census_profile(config, logger),
         "stops": load_bus_stops(config, logger),
+        "route_stops": load_route_stops(config, logger),
         "stations": load_train_stations(config, logger),
         "lines": load_train_lines(config, logger),
         "graph": load_walk_graph(config, logger),
@@ -208,10 +195,11 @@ def render_diagnostic(
     tables["comparison"] = comparison
 
 
-def render_validation(layers, residences, gains, config, logger, figures, tables):
-    """Volet validation, figure de gain, effet de chaque ajout et tableau de barriere."""
+def render_validation(layers, residences, addition, config, logger, figures, tables):
+    """Volet validation, gain de l'assortiment, borne du meilleur ajout et effet de barriere."""
     paths = config["paths"]
-    if gains is not None:
+    if addition is not None:
+        gains, bound = addition
         gain_path = os.path.join(
             paths["outputs_figures"], paths["figure_files"]["gain"]
         )
@@ -228,7 +216,23 @@ def render_validation(layers, residences, gains, config, logger, figures, tables
         )
         tables["service_addition"] = effect
 
-    barrier = barrier_analysis(layers, residences, layers["services"], config, logger)
+        export_table(
+            bound,
+            os.path.join(
+                paths["outputs_tables"], paths["table_files"]["addition_bound"]
+            ),
+            logger,
+        )
+        tables["addition_bound"] = bound
+
+    barrier, crossings = barrier_analysis(
+        layers, residences, layers["services"], config, logger
+    )
+    export_table(
+        crossings,
+        os.path.join(paths["outputs_tables"], paths["table_files"]["crossing_bridges"]),
+        logger,
+    )
     export_table(
         barrier,
         os.path.join(paths["outputs_tables"], paths["table_files"]["barrier"]),
@@ -265,7 +269,9 @@ def _render_lever_map(
         site_sectors,
         config["visualization"],
         config["geographic_crs"],
+        config["target_crs"],
         os.path.join(config["paths"]["outputs_maps"], map_file),
+        stop_field=config["transit"]["gtfs_fields"]["stop_name"],
         station_field=config["transit"]["station_name_field"],
         line_field=config["transit"]["line_name_field"],
         logger=logger,
@@ -329,6 +335,28 @@ def render_lever(
         )
 
 
+def compute_transit_access(
+    layers, residences, distances_by_type, nodes_by_type, config, logger
+):
+    """Distances effectives des deux groupes avec le transport, un trajet sans transfert."""
+    route_access = prepare_route_access(layers, nodes_by_type, config, logger)
+    node_by_residence = dict(zip(residences["residence_id"], residences["node"]))
+    transit = config["transit"]
+    seniors = transit_distances_by_type(
+        distances_by_type,
+        node_by_residence,
+        *route_access,
+        transit["max_total_walk_seniors_m"],
+    )
+    rest = transit_distances_by_type(
+        distances_by_type,
+        node_by_residence,
+        *route_access,
+        transit["max_total_walk_rest_m"],
+    )
+    return route_access, seniors, rest
+
+
 def run_pipeline():
     """Enchaine les etapes du pipeline, diagnostic, validation, levier puis rapport."""
     config = load_config()
@@ -339,32 +367,18 @@ def run_pipeline():
     audit_all_layers(layers, config, logger)
 
     areas, residences = prepare_demand(layers, config, logger)
-    (
-        residences,
-        services,
-        distances_by_type,
-        home_to_stop,
-        stop_to_service,
-        transit_reached,
-    ) = compute_distances(layers, residences, config, logger)
+    residences, services, distances_by_type, nodes_by_type = compute_distances(
+        layers, residences, config, logger
+    )
     layers["services"] = services
 
-    transit_seniors = transit_distances_by_type(
-        distances_by_type,
-        home_to_stop,
-        stop_to_service,
-        config["transit"]["max_stop_distance_seniors_m"],
-    )
-    transit_rest = transit_distances_by_type(
-        distances_by_type,
-        home_to_stop,
-        stop_to_service,
-        config["transit"]["max_stop_distance_rest_m"],
+    route_access, transit_seniors, transit_rest = compute_transit_access(
+        layers, residences, distances_by_type, nodes_by_type, config, logger
     )
 
     figures = {}
     tables = {}
-    gains = service_addition_check(
+    addition = service_addition_check(
         layers, residences, distances_by_type, config, logger
     )
     render_diagnostic(
@@ -377,11 +391,9 @@ def run_pipeline():
         figures,
         tables,
     )
-    render_validation(layers, residences, gains, config, logger, figures, tables)
+    render_validation(layers, residences, addition, config, logger, figures, tables)
 
-    dev_scored = score_development_sites(
-        layers, services, transit_reached, config, logger
-    )
+    dev_scored = score_development_sites(layers, services, route_access, config, logger)
     render_lever(
         layers,
         residences,
@@ -396,15 +408,43 @@ def run_pipeline():
 
     build_report(config, figures, tables, logger)
 
-    save_processed(residences, config, "residences", logger)
-    save_processed(layers["stops"], config, "bus_stops", logger)
-    save_processed(layers["stations"], config, "stations", logger)
-    save_processed(areas, config, "dissemination_areas", logger)
+    save_layer(residences, config, "residences", logger)
+    save_layer(layers["stops"], config, "bus_stops", logger)
+    save_layer(layers["stations"], config, "stations", logger)
+    save_layer(areas, config, "dissemination_areas", logger)
     if dev_scored is not None:
-        save_processed(dev_scored["walk"], config, "development_sites", logger)
+        save_layer(dev_scored["walk"], config, "development_sites", logger)
 
     logger.info("Pipeline termine, sorties disponibles dans outputs")
 
 
+def main():
+    """Lance le pipeline et transforme toute erreur en message clair.
+
+    Une source absente, une configuration incomplete ou une regle d'audit en echec sont
+    des situations previsibles. Elles doivent donner une consigne utile et un code de
+    sortie non nul, jamais une trace Python brute. Le dernier filet attrape tout le reste
+    pour la meme raison, le journal du pipeline garde de son cote le detail.
+    """
+    try:
+        run_pipeline()
+    except ConfigError as error:
+        print(f"Configuration invalide, {error}", file=sys.stderr)
+        return 1
+    except AuditError as error:
+        print(f"Audit des donnees en echec, {error}", file=sys.stderr)
+        return 1
+    except FileNotFoundError as error:
+        print(
+            f"Donnee source introuvable, {error}. Lancer d'abord python download_data.py",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as error:  # noqa: BLE001
+        print(f"Echec inattendu du pipeline, {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
-    run_pipeline()
+    sys.exit(main())
