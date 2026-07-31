@@ -1,0 +1,3 @@
+# Ce dossier doit exister dans un depot frais. download_data.py y ecrit les couches
+# OpenStreetMap regenerees et main.py y ecrit les couches intermediaires verifiables
+# dans QGIS. Son contenu n'est pas versionne, il se regenere.
