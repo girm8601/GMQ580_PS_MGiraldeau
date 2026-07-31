@@ -1,0 +1,3 @@
+# Ce dossier accueille les donnees synthetiques des tests, jamais les vraies donnees du
+# projet. Les tests actuels construisent leurs GeoDataFrames directement en Python, alors
+# il reste vide. Voir la section Tests et integration continue du README.
