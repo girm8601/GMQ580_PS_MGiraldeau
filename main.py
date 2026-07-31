@@ -14,36 +14,17 @@ from __future__ import annotations
 import os
 import sys
 
-import geopandas as gpd
-
 from config_loader import ConfigError, load_config
 from src import _gdal_fix  # noqa: F401  (corrige le chargement de GDAL, comme au TD2)
-from src.extraction.buildings import load_residences
-from src.extraction.census import load_census_profile
-from src.extraction.network import load_walk_graph
-from src.extraction.reference_layers import (
-    load_commercial,
-    load_development,
-    load_dissemination_areas,
-    load_municipalities,
-    load_residential,
-    load_water,
-)
-from src.extraction.services import load_services
-from src.extraction.transit import (
-    load_bus_stops,
-    load_route_stops,
-    load_train_lines,
-    load_train_stations,
-)
+from src.extraction.layers import load_all_layers
 from src.io import save_layer
 from src.logger import setup_logger
 from src.processing.accessibility import compute_distances, scored_residences
 from src.processing.coverage import coverage_summary
 from src.processing.demand import prepare_demand
-from src.processing.scenarios import score_development_sites, service_addition_check
 from src.processing.sectors import best_sectors
-from src.processing.study_area import build_zone
+from src.processing.service_addition import service_addition_check
+from src.processing.site_scoring import score_development_sites
 from src.processing.transit_access import transit_distances_by_type
 from src.processing.transit_routes import prepare_route_access
 from src.results.metrics import (
@@ -53,7 +34,7 @@ from src.results.metrics import (
     service_addition_effect_table,
 )
 from src.results.report import build_report
-from src.validation.audit import AuditError, fix_invalid_geometries, run_audit
+from src.validation.audit import AuditError, audit_all_layers
 from src.validation.bridges import barrier_analysis
 from src.visualization.charts import coverage_chart, gain_curve_chart
 from src.visualization.maps import (
@@ -61,103 +42,6 @@ from src.visualization.maps import (
     ordered_service_types,
     walk_edges_for_display,
 )
-
-
-def load_all_layers(config, logger):
-    """Charge toutes les couches du projet et retourne un dictionnaire."""
-    municipalities = load_municipalities(config)
-    study_zone = build_zone(municipalities, config)
-    areas = load_dissemination_areas(config, study_zone)
-    areas, _ = fix_invalid_geometries(areas, "dissemination_areas", logger)
-    residential = load_residential(config, study_zone, logger)
-    if residential is not None:
-        residential, _ = fix_invalid_geometries(residential, "residential", logger)
-    layers = {
-        "municipalities": municipalities,
-        "study_zone": study_zone,
-        "areas": areas,
-        "residential": residential,
-        "census": load_census_profile(config, logger),
-        "stops": load_bus_stops(config, logger),
-        "route_stops": load_route_stops(config, logger),
-        "stations": load_train_stations(config, logger),
-        "lines": load_train_lines(config, logger),
-        "graph": load_walk_graph(config, logger),
-        "services": load_services(config, logger),
-    }
-    layers["residences"] = load_residences(config, residential, logger)
-    layers["water"] = load_water(config, study_zone, logger)
-    layers["commercial"] = load_commercial(config, study_zone, logger)
-    layers["development"] = load_development(config, study_zone, logger)
-    for key in ("commercial", "development"):
-        if layers[key] is not None:
-            layers[key], _ = fix_invalid_geometries(layers[key], key, logger)
-
-    # Les arrets hors de la zone d'etude sont ecartes.
-    zone_union = study_zone.union_all()
-    before = len(layers["stops"])
-    layers["stops"] = layers["stops"][layers["stops"].within(zone_union)].copy()
-    logger.info(
-        "Arrets conserves dans la zone d'etude, %d sur %d",
-        len(layers["stops"]),
-        before,
-    )
-
-    layers["lines"] = gpd.clip(layers["lines"], study_zone)
-    layers["lines"] = layers["lines"][~layers["lines"].geometry.is_empty].copy()
-    return layers
-
-
-def audit_all_layers(layers, config, logger):
-    """Audite toutes les couches spatiales avant le moindre traitement."""
-    crs = config["target_crs"]
-    zone = layers["study_zone"]
-    name_field = config["study_area"]["municipality_name_field"]
-    join_field = config["vulnerability"]["ad_join_field"]
-    station_field = config["transit"]["station_name_field"]
-    line_field = config["transit"]["line_name_field"]
-    entries = [
-        {
-            "gdf": layers["municipalities"],
-            "name": "municipal_limits",
-            "crs": crs,
-            "required_fields": [name_field],
-        },
-        {
-            "gdf": layers["areas"],
-            "name": "dissemination_areas",
-            "crs": crs,
-            "required_fields": [join_field],
-            "zone": zone,
-        },
-        {"gdf": layers["stops"], "name": "bus_stops", "crs": crs, "zone": zone},
-        {
-            "gdf": layers["stations"],
-            "name": "train_stations",
-            "crs": crs,
-            "required_fields": [station_field],
-        },
-        {
-            "gdf": layers["lines"],
-            "name": "train_lines",
-            "crs": crs,
-            "required_fields": [line_field],
-        },
-        {
-            "gdf": layers["services"],
-            "name": "essential_services",
-            "crs": crs,
-            "required_fields": ["service_type"],
-            "zone": zone,
-        },
-        {"gdf": layers["residences"], "name": "residences", "crs": crs, "zone": zone},
-    ]
-    if layers.get("water") is not None:
-        entries.append({"gdf": layers["water"], "name": "water", "crs": crs})
-    for key in ("commercial", "development", "residential"):
-        if layers.get(key) is not None:
-            entries.append({"gdf": layers[key], "name": key, "crs": crs, "zone": zone})
-    run_audit(entries, config["paths"]["audit_report"], logger)
 
 
 def render_diagnostic(
@@ -195,7 +79,9 @@ def render_diagnostic(
     tables["comparison"] = comparison
 
 
-def render_validation(layers, residences, addition, config, logger, figures, tables):
+def render_validation(
+    layers, residences, snapped_by_type, addition, config, logger, figures, tables
+):
     """Volet validation, gain de l'assortiment, borne du meilleur ajout et effet de barriere."""
     paths = config["paths"]
     if addition is not None:
@@ -226,7 +112,7 @@ def render_validation(layers, residences, addition, config, logger, figures, tab
         tables["addition_bound"] = bound
 
     barrier, crossings = barrier_analysis(
-        layers, residences, layers["services"], config, logger
+        layers, residences, snapped_by_type, config, logger
     )
     export_table(
         crossings,
@@ -336,21 +222,23 @@ def render_lever(
 
 
 def compute_transit_access(
-    layers, residences, distances_by_type, nodes_by_type, config, logger
+    layers, residences, distances_by_type, snapped_by_type, config, logger
 ):
     """Distances effectives des deux groupes avec le transport, un trajet sans transfert."""
-    route_access = prepare_route_access(layers, nodes_by_type, config, logger)
-    node_by_residence = dict(zip(residences["residence_id"], residences["node"]))
+    route_access = prepare_route_access(layers, snapped_by_type, config, logger)
+    snapped_residences = dict(
+        zip(residences["residence_id"], zip(residences["node"], residences["snap_m"]))
+    )
     transit = config["transit"]
     seniors = transit_distances_by_type(
         distances_by_type,
-        node_by_residence,
+        snapped_residences,
         *route_access,
         transit["max_total_walk_seniors_m"],
     )
     rest = transit_distances_by_type(
         distances_by_type,
-        node_by_residence,
+        snapped_residences,
         *route_access,
         transit["max_total_walk_rest_m"],
     )
@@ -367,13 +255,13 @@ def run_pipeline():
     audit_all_layers(layers, config, logger)
 
     areas, residences = prepare_demand(layers, config, logger)
-    residences, services, distances_by_type, nodes_by_type = compute_distances(
+    residences, services, distances_by_type, snapped_by_type = compute_distances(
         layers, residences, config, logger
     )
     layers["services"] = services
 
     route_access, transit_seniors, transit_rest = compute_transit_access(
-        layers, residences, distances_by_type, nodes_by_type, config, logger
+        layers, residences, distances_by_type, snapped_by_type, config, logger
     )
 
     figures = {}
@@ -391,7 +279,9 @@ def run_pipeline():
         figures,
         tables,
     )
-    render_validation(layers, residences, addition, config, logger, figures, tables)
+    render_validation(
+        layers, residences, snapped_by_type, addition, config, logger, figures, tables
+    )
 
     dev_scored = score_development_sites(layers, services, route_access, config, logger)
     render_lever(
