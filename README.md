@@ -76,26 +76,17 @@ Le projet écrit ses couches en GeoPackage, un format de base de données spatia
 ## Pipeline de traitement
 Un module pour une responsabilité, aucun fichier au delà de 400 lignes. `main.py` orchestre seulement, tout le traitement vit dans `src`.
 
-Les trois volets ne s'enchaînent pas, ils lisent les mêmes distances en parallèle.
+Les quatre premières cases suivent l'ordre d'exécution. Les trois volets viennent ensuite, en parallèle, ils ne se nourrissent pas les uns des autres.
 
 ```mermaid
 flowchart TD
     A[Données ouvertes] -->|osmnx, geopandas, pandas| B[Acquisition et audit]
     B -->|recensement 2021 réparti sur les résidences| C[Demande par aire de diffusion]
-    B -->|networkx, Dijkstra, écart d'accrochage| D[Distances de marche sur le réseau]
+    C -->|networkx, Dijkstra, écart d'accrochage| D[Distances de marche]
     D -->|GTFS exo, trajet sans transfert| E[Distances avec le transport]
-
-    C --> F[1. Diagnostic d'équité]
-    D -->|cote sur 100, aînés contre reste de la population| F
-    E --> F
-
-    C --> G[2. Validation des pistes écartées]
-    D -->|spopt, pulp, effet de barrière| G
-
-    C --> H[3. Levier, meilleurs secteurs]
-    D -->|agrégation par aire de diffusion| H
-    E --> H
-
+    E -->|cote sur 100 par groupe| F[1. Diagnostic d'équité]
+    E -->|spopt, pulp| G[2. Validation des pistes écartées]
+    E -->|agrégation par aire| H[3. Levier, meilleurs secteurs]
     F --> I[Tableaux, figures et cartes]
     G --> I
     H -->|folium, matplotlib| I
