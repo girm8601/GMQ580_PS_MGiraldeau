@@ -17,7 +17,11 @@ import math
 import geopandas as gpd
 import pandas as pd
 
-from src.processing.graph import distances_from_sources, nearest_graph_nodes
+from src.processing.graph import (
+    distances_from_snapped_sources,
+    smallest_offset_by_node,
+    snap_points,
+)
 
 
 def _is_out_of_reach(distance_m):
@@ -27,6 +31,13 @@ def _is_out_of_reach(distance_m):
     return isinstance(distance_m, float) and (
         math.isnan(distance_m) or math.isinf(distance_m)
     )
+
+
+def _with_snap(network_distance_m, snap_m):
+    """Ajoute l'ecart d'accrochage du point de depart, None reste None."""
+    if network_distance_m is None:
+        return None
+    return float(network_distance_m) + float(snap_m)
 
 
 def band_label(distance_m, bands):
@@ -91,33 +102,49 @@ def residence_scores(
 def compute_distances(layers, residences, config, logger):
     """Distances de marche minimales de chaque residence vers chaque type de service.
 
+    Chaque residence et chaque service est accroche au noeud le plus proche du reseau, et
+    l'ecart qui reste compte dans la distance. Une distance est donc l'ecart de la residence,
+    plus le trajet sur le reseau, plus l'ecart du service. Sans ces deux ecarts, une maison
+    loin du reseau heriterait de l'accessibilite de son noeud d'accrochage.
+
     Les distances sont calculees sans borne pour donner la vraie distance minimale vers
     chaque service, meme au dela des seuils, ce qui evite les valeurs manquantes dans les
-    infobulles. Retourne aussi les noeuds du graphe portant les services de chaque type,
+    infobulles. Retourne aussi les noeuds et les ecarts des services de chaque type,
     reutilises pour l'acces par le transport et pour l'effet de barriere.
     """
     graph = layers["graph"]
     residences = residences.copy()
-    residences["node"] = nearest_graph_nodes(graph, residences)
+    residences["node"], residences["snap_m"] = snap_points(graph, residences)
+    logger.info(
+        "Residences accrochees au reseau, ecart median %.0f m, maximal %.0f m",
+        residences["snap_m"].median(),
+        residences["snap_m"].max(),
+    )
 
     services = layers["services"].copy()
-    services["node"] = nearest_graph_nodes(graph, services)
+    services["node"], services["snap_m"] = snap_points(graph, services)
+    logger.info(
+        "Services accroches au reseau, ecart median %.0f m, maximal %.0f m",
+        services["snap_m"].median(),
+        services["snap_m"].max(),
+    )
 
     distances_by_type = {}
-    nodes_by_type = {}
+    snapped_by_type = {}
     for service_type in config["essential_services"]:
-        type_nodes = list(
-            services.loc[services["service_type"] == service_type, "node"]
+        of_type = services[services["service_type"] == service_type]
+        snapped_by_type[service_type] = list(zip(of_type["node"], of_type["snap_m"]))
+        reached = distances_from_snapped_sources(
+            graph, smallest_offset_by_node(of_type["node"], of_type["snap_m"])
         )
-        nodes_by_type[service_type] = type_nodes
-        reached = distances_from_sources(graph, type_nodes, cutoff=None)
         distances_by_type[service_type] = {
-            row.residence_id: reached.get(row.node) for row in residences.itertuples()
+            row.residence_id: _with_snap(reached.get(row.node), row.snap_m)
+            for row in residences.itertuples()
         }
         logger.info(
-            "Distances calculees, %s, %d service(s)", service_type, len(type_nodes)
+            "Distances calculees, %s, %d service(s)", service_type, len(of_type)
         )
-    return residences, services, distances_by_type, nodes_by_type
+    return residences, services, distances_by_type, snapped_by_type
 
 
 def scored_residences(residences, distances_by_type, importance, bands, config):

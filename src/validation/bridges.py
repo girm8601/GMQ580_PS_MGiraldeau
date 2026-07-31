@@ -12,7 +12,7 @@ from __future__ import annotations
 import geopandas as gpd
 import pandas as pd
 
-from src.processing.graph import distances_from_sources
+from src.processing.graph import distances_from_snapped_sources, smallest_offset_by_node
 from src.results.metrics import barrier_effect_table
 
 
@@ -79,16 +79,25 @@ def remove_crossing_edges(graph, crossings):
     return cut_graph
 
 
-def _covered_weight(
-    graph, type_nodes, threshold, node_by_residence, weight_by_residence
-):
-    """Poids de demande couvert par un type de service sous le seuil, sur un graphe donne."""
-    reached = distances_from_sources(graph, type_nodes, cutoff=threshold)
-    return sum(
-        weight_by_residence[rid]
-        for rid, node in node_by_residence.items()
-        if reached.get(node) is not None
+def _covered_weight(graph, snapped, threshold, snapped_residences, weight_by_residence):
+    """Poids de demande couvert par un type de service sous le seuil, sur un graphe donne.
+
+    snapped donne les couples noeud et ecart des services du type, snapped_residences ceux
+    des residences. Les deux ecarts comptent dans la distance, comme partout ailleurs.
+    """
+    reached = distances_from_snapped_sources(
+        graph,
+        smallest_offset_by_node(
+            [node for node, _ in snapped], [snap for _, snap in snapped]
+        ),
+        cutoff=threshold,
     )
+    covered = 0.0
+    for residence_id, (node, snap_m) in snapped_residences.items():
+        distance = reached.get(node)
+        if distance is not None and distance + snap_m <= threshold:
+            covered += weight_by_residence[residence_id]
+    return covered
 
 
 def river_polygon(water_gdf, municipalities_gdf, west_names, east_names, name_field):
@@ -166,13 +175,14 @@ def _check_bridge_detection(graph, river, banks, crossings, logger):
     )
 
 
-def barrier_analysis(layers, residences, services, config, logger):
+def barrier_analysis(layers, residences, snapped_by_type, config, logger):
     """Chiffre l'effet de barriere par groupe et par service en coupant les liens du pont.
 
     Pour chaque groupe a son seuil, aines a 800 m et reste a 1000 m, on compte la demande
     couverte par type de service avec les ponts puis sans les ponts. L'ecart est l'effet de
-    barriere, qui reste faible. Retourne le tableau d'effet et le tableau verifiable des
-    liens traversants, que l'appelant exporte comme les autres tableaux.
+    barriere, qui reste faible. snapped_by_type donne les couples noeud et ecart des services
+    de chaque type. Retourne le tableau d'effet et le tableau verifiable des liens
+    traversants, que l'appelant exporte comme les autres tableaux.
     """
     import osmnx as ox
 
@@ -200,7 +210,9 @@ def barrier_analysis(layers, residences, services, config, logger):
     _check_bridge_detection(graph, river, banks, crossings, logger)
 
     cut_graph = remove_crossing_edges(graph, crossings)
-    node_by_residence = dict(zip(residences["residence_id"], residences["node"]))
+    snapped_residences = dict(
+        zip(residences["residence_id"], zip(residences["node"], residences["snap_m"]))
+    )
     groups = [
         (
             "seniors",
@@ -216,14 +228,12 @@ def barrier_analysis(layers, residences, services, config, logger):
         )
         group_total = round(float(sum(weight_by_residence.values())), 1)
         for service_type in config["essential_services"]:
-            type_nodes = list(
-                services.loc[services["service_type"] == service_type, "node"]
-            )
+            snapped = snapped_by_type[service_type]
             covered_with = _covered_weight(
-                graph, type_nodes, threshold, node_by_residence, weight_by_residence
+                graph, snapped, threshold, snapped_residences, weight_by_residence
             )
             covered_without = _covered_weight(
-                cut_graph, type_nodes, threshold, node_by_residence, weight_by_residence
+                cut_graph, snapped, threshold, snapped_residences, weight_by_residence
             )
             rows.append(
                 {
