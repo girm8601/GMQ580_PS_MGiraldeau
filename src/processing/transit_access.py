@@ -26,17 +26,21 @@ def total_walk(home_walk_m, service_walk_m, max_total_walk_m):
     return total if total <= max_total_walk_m else None
 
 
-def best_route_walk(node, route_walk, walk_by_route, service_type, max_total_walk_m):
+def best_route_walk(
+    node, snap_m, route_walk, walk_by_route, service_type, max_total_walk_m
+):
     """Marche totale la plus courte vers un type de service, toutes lignes confondues.
 
-    Chaque ligne est essayee, la marche du noeud vers cette ligne plus la marche de cette
-    ligne vers le service. La meilleure ligne est retenue. Retourne None si aucune ligne
-    ne donne un trajet acceptable.
+    Chaque ligne est essayee, la marche du point de depart vers cette ligne plus la marche de
+    cette ligne vers le service. snap_m est l'ecart d'accrochage du point de depart, il
+    s'ajoute a la marche vers la ligne. La meilleure ligne est retenue. Retourne None si
+    aucune ligne ne donne un trajet acceptable.
     """
     best = None
     for route_id, reached in route_walk.items():
+        to_route = reached.get(node)
         candidate = total_walk(
-            reached.get(node),
+            None if to_route is None else to_route + snap_m,
             walk_by_route.get(route_id, {}).get(service_type),
             max_total_walk_m,
         )
@@ -54,41 +58,49 @@ def effective_distance(walk_distance_m, transit_walk_m):
     return min(walk_distance_m, transit_walk_m)
 
 
-def transit_walk_by_node(
-    nodes, route_walk, walk_by_route, service_type, max_total_walk_m
+def transit_walk_by_point(
+    node_and_snap_by_point, route_walk, walk_by_route, service_type, max_total_walk_m
 ):
-    """Marche totale la plus courte par le transport, pour chaque noeud demande.
+    """Marche totale la plus courte par le transport, pour chaque point demande.
 
-    Le calcul se fait par noeud du graphe et non par point, car plusieurs residences
-    partagent le meme noeud d'accrochage. Cela evite de refaire le meme travail.
+    Le calcul se fait par couple noeud et ecart d'accrochage, plusieurs points qui partagent
+    les deux donnent donc le meme resultat sans refaire le travail.
     """
-    return {
-        node: best_route_walk(
-            node, route_walk, walk_by_route, service_type, max_total_walk_m
-        )
-        for node in nodes
-    }
+    cache = {}
+    for node, snap_m in node_and_snap_by_point.values():
+        if (node, snap_m) not in cache:
+            cache[(node, snap_m)] = best_route_walk(
+                node, snap_m, route_walk, walk_by_route, service_type, max_total_walk_m
+            )
+    return cache
 
 
 def transit_distances_by_type(
-    distances_by_type, node_by_point, route_walk, walk_by_route, max_total_walk_m
+    distances_by_type,
+    node_and_snap_by_point,
+    route_walk,
+    walk_by_route,
+    max_total_walk_m,
 ):
     """Distances effectives par type de service en tenant compte du transport.
 
-    distances_by_type donne la marche directe de chaque point vers chaque type de
-    service. node_by_point donne le noeud du graphe de chaque point. max_total_walk_m est
-    la marche totale acceptable du groupe. Retourne la meme structure que l'entree, avec
-    la plus courte des deux distances.
+    distances_by_type donne la marche directe de chaque point vers chaque type de service.
+    node_and_snap_by_point donne le noeud du graphe et l'ecart d'accrochage de chaque point.
+    max_total_walk_m est la marche totale acceptable du groupe. Retourne la meme structure
+    que l'entree, avec la plus courte des deux distances.
     """
-    nodes = list(dict.fromkeys(node_by_point.values()))
     effective = {}
     for service_type, distances in distances_by_type.items():
-        by_node = transit_walk_by_node(
-            nodes, route_walk, walk_by_route, service_type, max_total_walk_m
+        by_point = transit_walk_by_point(
+            node_and_snap_by_point,
+            route_walk,
+            walk_by_route,
+            service_type,
+            max_total_walk_m,
         )
         effective[service_type] = {
             point_id: effective_distance(
-                distance, by_node.get(node_by_point.get(point_id))
+                distance, by_point.get(node_and_snap_by_point.get(point_id))
             )
             for point_id, distance in distances.items()
         }

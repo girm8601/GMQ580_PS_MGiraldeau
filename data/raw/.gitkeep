@@ -1,0 +1,4 @@
+# Ce dossier doit exister dans un depot frais. Le pipeline y cherche les sources
+# telechargees manuellement, le recensement, les limites et le transport exo. Voir la
+# section Donnees du README pour les liens et download_data.py pour la liste attendue.
+# Son contenu n'est pas versionne, il est trop volumineux.

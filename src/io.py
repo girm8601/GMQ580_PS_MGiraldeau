@@ -3,7 +3,7 @@
 Toutes les couches du projet sont ramenees au CRS cible commun defini dans
 config.yaml (EPSG:2950, NAD83(CSRS) / MTM zone 8) avant analyse, pour eviter
 les jointures spatiales silencieusement fausses. Le CRS n'est pas code en dur
-ici, chaque appelant le recoit de la configuration (config_loader.py). Les
+ici, chaque appelant le recoit de la configuration lue par config_loader.py. Les
 coordonnees des tableaux exportes repassent en degres par ce meme module, et
 les couches intermediaires verifiables dans QGIS s'ecrivent ici aussi.
 """

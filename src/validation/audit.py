@@ -165,3 +165,55 @@ def run_audit(entries, report_path, logger):
         )
     logger.info("Audit reussi, rapport ecrit dans %s", report_path)
     return report
+
+
+def audit_all_layers(layers, config, logger):
+    """Audite toutes les couches spatiales avant le moindre traitement."""
+    crs = config["target_crs"]
+    zone = layers["study_zone"]
+    name_field = config["study_area"]["municipality_name_field"]
+    join_field = config["vulnerability"]["ad_join_field"]
+    station_field = config["transit"]["station_name_field"]
+    line_field = config["transit"]["line_name_field"]
+    entries = [
+        {
+            "gdf": layers["municipalities"],
+            "name": "municipal_limits",
+            "crs": crs,
+            "required_fields": [name_field],
+        },
+        {
+            "gdf": layers["areas"],
+            "name": "dissemination_areas",
+            "crs": crs,
+            "required_fields": [join_field],
+            "zone": zone,
+        },
+        {"gdf": layers["stops"], "name": "bus_stops", "crs": crs, "zone": zone},
+        {
+            "gdf": layers["stations"],
+            "name": "train_stations",
+            "crs": crs,
+            "required_fields": [station_field],
+        },
+        {
+            "gdf": layers["lines"],
+            "name": "train_lines",
+            "crs": crs,
+            "required_fields": [line_field],
+        },
+        {
+            "gdf": layers["services"],
+            "name": "essential_services",
+            "crs": crs,
+            "required_fields": ["service_type"],
+            "zone": zone,
+        },
+        {"gdf": layers["residences"], "name": "residences", "crs": crs, "zone": zone},
+    ]
+    if layers.get("water") is not None:
+        entries.append({"gdf": layers["water"], "name": "water", "crs": crs})
+    for key in ("commercial", "development", "residential"):
+        if layers.get(key) is not None:
+            entries.append({"gdf": layers[key], "name": key, "crs": crs, "zone": zone})
+    run_audit(entries, config["paths"]["audit_report"], logger)

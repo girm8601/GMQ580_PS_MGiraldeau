@@ -1,10 +1,12 @@
 """Chargement et validation du fichier de configuration YAML.
 
-Ce module lit config.yaml, verifie la presence des sections essentielles,
-puis retourne un dictionnaire pret a l'emploi pour le reste du pipeline.
-Toute erreur de configuration est signalee tot et clairement, avant le
-moindre acces aux donnees. Aucun parametre n'est ainsi code en dur dans
-les scripts.
+Ce module lit config.yaml, verifie la presence des sections essentielles, puis retourne un
+dictionnaire pret a l'emploi pour le reste du pipeline. Toute erreur de configuration est
+signalee tot et clairement, avant le moindre acces aux donnees. Aucun parametre n'est ainsi
+code en dur dans les scripts.
+
+Le fichier et son chargeur restent a la racine du depot, comme dans le gabarit de
+structure de projet du cours.
 """
 
 from __future__ import annotations
