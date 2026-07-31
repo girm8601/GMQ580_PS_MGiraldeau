@@ -156,6 +156,7 @@ optimization:
   matrix_cutoff_m: 1000                        # portee maximale de la matrice de distances
   site_spacing_m: 300                          # distance minimale entre deux sites retenus
   site_road_max_distance_m: 300                # distance maximale d'un site candidat au reseau pietonnier
+  demand_offset_step_m: 25                     # largeur d'une classe d'ecart d'accrochage, regroupe la demande du modele
   out_of_reach_multiplier: 10.0                # multiplie le seuil pour marquer une paire hors de portee
   coverage_reference_seniors_m: 200            # seuil de reference de la couverture pour les aines (palier Excellent)
   coverage_reference_rest_m: 400               # seuil de reference de la couverture pour le reste (palier Excellent)
