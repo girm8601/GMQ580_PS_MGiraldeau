@@ -69,6 +69,9 @@ def render_diagnostic(
     )
     coverage_chart(summary, config, coverage_path, logger)
     figures["coverage"] = coverage_path
+    # Le sommaire n'est pas imprime tel quel, il porte la comparaison a seuil commun que la
+    # conclusion du diagnostic cite.
+    tables["coverage"] = summary
 
     comparison = population_comparison_table(summary, config)
     export_table(

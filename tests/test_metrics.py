@@ -152,7 +152,7 @@ def test_sector_table_separates_types():
     addresses = _sector_layer("A1", "Beloeil", 90.0, "Excellent", 5, 0, 0)
     sites = _sector_layer("A2", "Otterburn Park", 70.0, "Bien", 3, 10, 10)
     table = sector_table(addresses, sites, "EPSG:4326", 6)
-    assert list(table["type"]) == ["adresse existante", "site a implanter"]
+    assert list(table["type"]) == ["adresse existante", "site à implanter"]
     assert list(table["municipality"]) == ["Beloeil", "Otterburn Park"]
     assert table.iloc[0]["ad_id"] == "A1"
     assert list(table.columns) == [

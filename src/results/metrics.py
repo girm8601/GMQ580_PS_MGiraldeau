@@ -87,6 +87,33 @@ def population_comparison_table(summary, config):
     return table.sort_values("service_type").reset_index(drop=True)
 
 
+def same_threshold_gap(summary, threshold_m):
+    """Ecart de couverture a pied entre aines et reste, les deux au meme seuil.
+
+    Le tableau de comparaison du projet mesure chaque groupe a sa propre distance
+    tolerable, c'est le sens meme d'une lecture d'equite. Il ne dit pas pour autant si
+    l'ecart obtenu vient de cette tolerance ou de la localisation des deux groupes. Placer
+    les deux au meme seuil isole la localisation, la seule difference qui reste entre eux
+    est alors la part d'aines de chaque aire de diffusion.
+
+    Retourne le nombre de types de service ou les aines sont devant, le nombre de types
+    compares et l'ecart moyen en points de pourcentage, ou None si le seuil demande est
+    absent du sommaire pour l'un des deux groupes.
+    """
+    walk = summary[
+        (summary["mode"] == "marche") & (summary["threshold_m"] == threshold_m)
+    ]
+    shares = walk.pivot_table(
+        index="service_type", columns="population", values="covered_percent"
+    )
+    if "seniors" not in shares.columns or "rest" not in shares.columns:
+        return None
+    gap = (shares["seniors"] - shares["rest"]).dropna()
+    if gap.empty:
+        return None
+    return int((gap > 0).sum()), len(gap), round(float(gap.mean()), 1)
+
+
 def service_addition_effect_table(gains):
     """Effet de chaque ajout de service, par groupe.
 
@@ -129,7 +156,7 @@ def sector_table(address_sectors, site_sectors, geographic_crs, precision):
     blocks = []
     for layer, kind in (
         (address_sectors, "adresse existante"),
-        (site_sectors, "site a implanter"),
+        (site_sectors, "site à implanter"),
     ):
         if layer is None or len(layer) == 0:
             continue
