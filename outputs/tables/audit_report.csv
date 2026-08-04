@@ -40,6 +40,7 @@ essential_services,no_duplicates,ok,0 doublon(s)
 essential_services,required_fields,ok,champs requis presents
 essential_services,expected_bounds,ok,"emprise 325241 5043968 331476 5050796, zone 323140 5041260 333798 5054906"
 essential_services,zone_overlap,ok,89 entite(s) dans la zone d'etude
+essential_services,plausible_counts,avertissement,"effectif faible, dentist 4 au lieu de 12 attendu(s), health 9 au lieu de 12 attendu(s), veterinary 2 au lieu de 3 attendu(s)"
 residences,expected_crs,ok,CRS conforme (EPSG:2950)
 residences,not_empty,ok,17594 entite(s)
 residences,valid_geometries,ok,0 geometrie(s) invalide(s)
