@@ -42,39 +42,46 @@ def coverage_summary(
     transport, le groupe rest est le reste de la population, poids du reste et marche
     totale de 1000 m. Chaque part passe par les memes trois fonctions elementaires que
     les tests couvrent, residences couvertes, poids couvert puis taux.
+
+    Chaque groupe est aussi mesure au seuil de l'autre. La comparaison d'equite du projet
+    garde chaque groupe a sa propre distance tolerable, c'est son objet meme, mais elle ne
+    permet pas de savoir si un ecart vient de la tolerance ou de la localisation. Les parts
+    a seuil commun repondent a cette seconde question et rendent la lecture verifiable.
     """
     thr_seniors = config["optimization"]["coverage_threshold_seniors_m"]
     thr_rest = config["optimization"]["coverage_threshold_rest_m"]
     ref_seniors = config["optimization"]["coverage_reference_seniors_m"]
     ref_rest = config["optimization"]["coverage_reference_rest_m"]
+    seniors_thresholds = sorted({ref_seniors, thr_seniors, thr_rest})
+    rest_thresholds = sorted({ref_rest, thr_rest, thr_seniors})
     plans = [
         (
             "seniors",
             "seniors_weight",
             "marche",
             distances_by_type,
-            [ref_seniors, thr_seniors],
+            seniors_thresholds,
         ),
         (
             "seniors",
             "seniors_weight",
             "marche_transport",
             transit_seniors,
-            [ref_seniors, thr_seniors],
+            seniors_thresholds,
         ),
         (
             "rest",
             "rest_weight",
             "marche",
             distances_by_type,
-            [ref_rest, thr_rest],
+            rest_thresholds,
         ),
         (
             "rest",
             "rest_weight",
             "marche_transport",
             transit_rest,
-            [ref_rest, thr_rest],
+            rest_thresholds,
         ),
     ]
     working = residences.copy()

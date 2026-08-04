@@ -88,4 +88,9 @@ def test_coverage_summary_by_group_mode_and_threshold():
     assert part("seniors", "marche", 200) == 50.0
     # Le reste de la population tolere 1000 m, les deux sont couvertes des la marche.
     assert part("rest", "marche", 1000) == 100.0
-    assert len(summary) == 8
+    # Chaque groupe est aussi mesure au seuil de l'autre, ce qui permet de comparer les
+    # deux a distance egale et de distinguer la tolerance de la localisation.
+    assert part("seniors", "marche", 1000) == 100.0
+    assert part("rest", "marche", 800) == 50.0
+    # Deux groupes, deux modes, trois seuils chacun.
+    assert len(summary) == 12
