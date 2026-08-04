@@ -93,8 +93,8 @@ flowchart TD
     E -->|cote sur 100 par groupe| F[1. Diagnostic d'équité]
     E -->|spopt, pulp| G[2. Validation des pistes écartées]
     E -->|agrégation par aire| H[3. Levier, meilleurs secteurs]
-    F --> I[Tableaux, figures et cartes]
-    G --> I
+    F -->|matplotlib| I[Tableaux, graphiques et cartes]
+    G -->|matplotlib| I
     H -->|folium, matplotlib| I
     I -->|fpdf2| J[Rapport PDF]
 
@@ -134,7 +134,7 @@ flowchart TD
 ## Librairies principales
 - **osmnx**, extraction du réseau, des points d'intérêt et de l'usage du sol d'OpenStreetMap (Boeing, 2017).
 - **networkx**, plus courts chemins par Dijkstra (1959), pour des distances réelles et non à vol d'oiseau.
-- **geopandas**, **pandas**, **shapely**, **pyproj**, **rtree**, **numpy** et **mapclassify**, données géospatiales et tabulaires, géométries, reprojections, index spatial et calcul matriciel.
+- **geopandas**, **pandas**, **shapely**, **pyproj** et **numpy**, données géospatiales et tabulaires, géométries, reprojections, index spatial et calcul matriciel. **rtree** reste dans l'environnement comme index de repli, l'index utilisé est celui de shapely.
 - **spopt (PySAL)** et **pulp**, couverture maximale (Church and ReVelle, 1974), le modèle de la validation d'ajout de services.
 - **folium**, les deux cartes interactives du levier.
 - **matplotlib** et **fpdf2**, les figures et le rapport PDF.
@@ -182,6 +182,7 @@ flowchart TD
 - **Rapport PDF en police Unicode (2026-08-04).** Les polices de base de fpdf2 sont limitées à latin-1 et remplaçaient par un point d'interrogation tout signe hors de ce jeu, à commencer par la ligature de Belœil. Le rapport utilise DejaVu Sans, livrée avec matplotlib qui est déjà une dépendance, aucun fichier de police n'est donc versionné. Les nombres suivent le guide du département, virgule décimale et pas de séparateur des milliers dans les tableaux. Les colonnes prennent leur largeur du contenu le plus long plutôt qu'une largeur égale, ce qui évite qu'une colonne large tronque son texte pendant qu'une colonne étroite laisse du vide.
 - **Toponymie officielle (2026-08-04).** Les textes affichés suivent la graphie de la Commission de toponymie du Québec, Belœil et La Vallée-du-Richelieu. La clé de jointure reste `Beloeil`, c'est la graphie de Données Québec, l'affichage rétablit la ligature par `report.value_labels`.
 - **Écart d'accrochage au réseau (2026-07-30).** Une maison n'est jamais exactement sur une rue. L'écart entre le point et son nœud vaut 34 mètres en médiane et jusqu'à deux kilomètres en secteur rural. Il compte aux deux bouts de chaque mesure.
+- **Retrait de mapclassify (2026-08-04).** La librairie était déclarée dans `requirements.txt` et `environment.yml` sans être importée nulle part. Les cotes qualitatives sont classées à partir des seuils de `config.yaml` et les figures n'utilisent que matplotlib. Une dépendance déclarée mais jamais chargée alourdit l'environnement conda et l'image Docker sans rien apporter, elle est retirée. `rtree` reste en place comme index de repli, l'index effectivement utilisé par geopandas est celui de shapely depuis shapely 2.0.
 
 ## Difficultés rencontrées
 - **Complétude d'OpenStreetMap.** La qualité varie en milieu périurbain, pour le réseau comme pour les étiquettes. La franchissabilité des ponts est validée par `bridges.py` et recoupée par les liens qui coupent la rivière. Une ville peut n'avoir aucun terrain à développer, le secteur de logement est alors sauté.
@@ -301,24 +302,24 @@ GitHub Actions vérifie `ruff` puis rejoue `pytest` à chaque `push` et `pull re
 | `test_report.py` | Écriture des nombres en français et conclusion du diagnostic |
 
 ## Références
-Anthropic (2026) Claude [Assistant d'intelligence artificielle générative]. Anthropic, San Francisco [En ligne]. https://claude.ai (outil utilisé en juillet 2026).
+Anthropic (2026) Claude [Assistant d'intelligence artificielle générative]. Anthropic, San Francisco [En ligne]. https://claude.ai (outil utilisé de juin à août 2026).
 
 Boeing, G. (2017) OSMnx: new methods for acquiring, constructing, analyzing, and visualizing complex street networks. Computers, Environment and Urban Systems, vol. 65, p. 126-139.
 
-Cerin, E., Nathan, A., van Cauwenberg, J., Barnett, D.W. and Barnett, A. (2017) The neighbourhood physical environment and active travel in older adults: a systematic review and meta-analysis. International Journal of Behavioral Nutrition and Physical Activity, vol. 14, no 1, article 15.
+Cerin, E., Nathan, A., van Cauwenberg, J., Barnett, D.W. and Barnett, A. (2017) The neighbourhood physical environment and active travel in older adults: a systematic review and meta-analysis. International Journal of Behavioral Nutrition and Physical Activity, vol. 14, article 15, 23 p.
 
-Church, R. and ReVelle, C. (1974) The maximal covering location problem. Papers in Regional Science, vol. 32, no 1, p. 101-118.
+Church, R. and ReVelle, C. (1974) The maximal covering location problem. Papers of the Regional Science Association, vol. 32, p. 101-118.
 
 Dijkstra, E.W. (1959) A note on two problems in connexion with graphs. Numerische Mathematik, vol. 1, no 1, p. 269-271.
 
 Organisation mondiale de la Santé (2007) Guide mondial des villes-amies des aînés. Organisation mondiale de la Santé, Genève, 76 p.
 
-Statistique Canada (2021) Aire de diffusion (AD). *In* Dictionnaire, Recensement de la population, 2021, Gouvernement du Canada [En ligne]. https://www12.statcan.gc.ca/census-recensement/2021/ref/dict/az/definition-fra.cfm?ID=geo021 (page consultée le 17 juillet 2026).
+Statistique Canada (2021) Aire de diffusion (AD). In Dictionnaire, Recensement de la population, 2021, Gouvernement du Canada [En ligne]. https://www12.statcan.gc.ca/census-recensement/2021/ref/dict/az/definition-fra.cfm?ID=geo021 (page consultée le 4 août 2026).
 
-Voirin, Y. (2026) GMQ580, Géo-informatique II. Notes de cours. Université de Sherbrooke, Département de géomatique appliquée.
+Voirin, Y. (2026) GMQ 580, Géo-informatique II. Notes de cours, Département de géomatique appliquée, Université de Sherbrooke, Sherbrooke.
 
-Walk Score (s.d.) Walk Score Methodology [En ligne]. https://www.walkscore.com/methodology.shtml (page consultée le 17 juillet 2026).
+Walk Score (s.d.) Walk Score Methodology. Walk Score, Seattle [En ligne]. https://www.walkscore.com/methodology.shtml (page consultée le 4 août 2026).
 
 Yang, Y. and Diez-Roux, A.V. (2012) Walking distance by trip purpose and population subgroups. American Journal of Preventive Medicine, vol. 43, no 1, p. 11-19.
 
-**Usage de l'intelligence artificielle.** Claude d'Anthropic a servi à la relecture du code, à la vérification des calculs et à la rédaction. Tout le code retenu a été lu, testé et compris. Les décisions méthodologiques sont les miennes.
+**Usage de l'intelligence artificielle.** Claude d'Anthropic a été utilisé pour aider à intégrer au projet les notions vues en cours, à structurer le projet, à rédiger le code, à vérifier le travail et à retravailler les calculs ainsi que la rédaction selon mes demandes. J'ai pris toutes les décisions et proposé toutes les idées. J'ai lu, testé, vérifié, amélioré et compris l'ensemble du projet.
