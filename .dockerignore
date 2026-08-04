@@ -1,4 +1,6 @@
 # Fichiers a ne pas copier dans l'image Docker, ils sont regeneres ou inutiles.
+# Les donnees et les sorties sont montees au lancement, elles n'ont pas a alourdir l'image
+# ni a y figer un etat. Le Dockerfile recree les dossiers vides correspondants.
 .git/
 __pycache__/
 *.pyc
