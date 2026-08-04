@@ -161,6 +161,28 @@ optimization:
   coverage_reference_seniors_m: 200            # seuil de reference de la couverture pour les aines (palier Excellent)
   coverage_reference_rest_m: 400               # seuil de reference de la couverture pour le reste (palier Excellent)
 
+# --- Qualite des donnees ---
+# Effectif minimal plausible par type de service dans la zone d'etude. Les regles d'audit
+# precedentes verifient la forme de la donnee, jamais son contenu, et l'etiquetage
+# d'OpenStreetMap depend de la contribution benevole. Un type peut donc passer toutes les
+# regles en ne portant qu'une fraction des etablissements reellement presents.
+#
+# Ces valeurs sont des ordres de grandeur tires de la population de la zone, environ 57 000
+# habitants, et non un inventaire de reference. Elles sont volontairement basses. La regle
+# avertit sans bloquer, un effectif faible est une limite a declarer dans le rapport et non
+# une donnee invalide. A reviser des qu'un inventaire officiel est disponible.
+data_quality:
+  min_service_counts:
+    supermarket: 6        # environ un par 9000 habitants
+    pharmacy: 8           # environ un par 7000 habitants
+    convenience: 10       # environ un par 5500 habitants
+    bank: 8               # environ un par 7000 habitants
+    health: 12            # clinique et cabinet de medecin, environ un par 4500 habitants
+    dentist: 12           # environ un par 4500 habitants
+    veterinary: 3         # environ un par 19000 habitants
+    school: 15            # primaire et secondaire
+    kindergarten: 12      # garderie et centre de la petite enfance
+
 # --- Importance des services, deux jeux de poids ---
 # Le jeu des aines guide leur cote sur 100, le classement des adresses et le choix des
 # sites de logement. Le jeu du reste de la population sert au diagnostic d'equite, il
@@ -194,7 +216,7 @@ visualization:
   font_awesome_cdn: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
   # Titre, legende et note de source des cartes, les elements d'une carte thematique.
   # La fleche du nord est inutile, le nord d'une carte web est toujours en haut.
-  map_title: "Où vieillir à pied dans la Vallée du Richelieu"
+  map_title: "Où vieillir à pied dans La Vallée-du-Richelieu"
   map_subtitle_walk: "Meilleurs secteurs pour les aînés, à la marche seulement"
   map_subtitle_transit: "Meilleurs secteurs pour les aînés, avec le transport collectif"
   map_source_note: "Sources, OpenStreetMap, Statistique Canada 2021, Données Québec et exo. Projection {crs}."
@@ -362,7 +384,8 @@ export:
 report:
   course: "GMQ 580 - Géo-informatique II"
   author: "Mylène Giraldeau"
-  title: "Où vieillir à pied dans la Vallée du Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés"
+  # Toponymes selon la graphie officielle de la Commission de toponymie du Québec.
+  title: "Où vieillir à pied dans La Vallée-du-Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés"
   logo: "assets/logo_uds.png"        # logo de l'universite en page titre, saute si absent
   output: "outputs/rapport_projet.pdf"
   maps_base_url: "https://girm8601.github.io/GMQ580_PS_MGiraldeau/outputs/maps"  # cartes publiees sur GitHub Pages
@@ -422,8 +445,14 @@ report:
     mean_score_percent: "Cote moyenne (/100)"
     mean_quality: "Cote qualitative"
     n_points: "Nombre de points"
-  # Valeurs affichees dans les cellules, memes cles internes qu'ailleurs.
+  # Signe decimal du francais, exige par le guide de redaction du departement. Le separateur
+  # des milliers n'est pas utilise, le guide en exempte les tableaux.
+  decimal_separator: ","
+  # Valeurs affichees dans les cellules, memes cles internes qu'ailleurs. La graphie de
+  # Beloeil est celle de Donnees Quebec, elle sert de cle de jointure et ne peut pas changer.
+  # L'affichage retablit la ligature officielle de la Commission de toponymie du Quebec.
   value_labels:
+    Beloeil: "Belœil"
     seniors: "Aînés"
     rest: "Reste de la population"
     marche: "Marche"

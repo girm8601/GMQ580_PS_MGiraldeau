@@ -34,6 +34,7 @@ REQUIRED_KEYS = [
     "transit",
     "vulnerability",
     "essential_services",
+    "data_quality",
     "optimization",
     "importance_seniors",
     "importance_rest",
