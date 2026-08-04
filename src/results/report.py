@@ -10,9 +10,23 @@ la prose du README. Les chiffres et les figures viennent des modules d'analyse.
 from __future__ import annotations
 
 import datetime
+import math
+import numbers
 import os
 
 from fpdf import FPDF
+
+from src.results.metrics import same_threshold_gap
+
+# Police de base de fpdf2, limitee a latin-1. La ligature de Beloeil et plusieurs signes
+# francais en sortent, ils deviendraient des points d'interrogation dans le PDF.
+BASE_FAMILY = "Helvetica"
+# Police Unicode, livree avec matplotlib qui est deja une dependance du projet. Aucun
+# fichier de police n'est donc a versionner.
+UNICODE_FAMILY = "DejaVuSans"
+UNICODE_FILES = {"": "DejaVuSans.ttf", "B": "DejaVuSans-Bold.ttf"}
+# Au dela de cette precision, un nombre affiche plus de chiffres que la donnee n'en porte.
+MAX_DECIMALS = 6
 
 MONTHS = [
     "janvier",
@@ -64,10 +78,13 @@ INTRO = {
 
 CONCLUSION = {
     "diagnostic": (
-        "Le reste de la population est mieux desservi par les différents types de services "
-        "et par les services jugés plus importants pour ce groupe, comme l'école et la "
-        "garderie. Les aînés ont donc des besoins qui leur sont propres, ce qui justifie "
-        "une solution ciblée."
+        "Chaque groupe est mesuré à la distance qu'il peut parcourir, 800 mètres pour un "
+        "aîné et 1000 mètres pour le reste de la population. Cette différence de tolérance "
+        "est une hypothèse de départ tirée de la littérature, et non un résultat. Ce que le "
+        "diagnostic chiffre, c'est sa conséquence sur ce territoire. À distance tolérable, "
+        "l'offre existante rend moins de services utilisables aux aînés, et les services "
+        "les mieux atteints, l'école et la garderie, sont ceux qui leur servent le moins. "
+        "La solution doit donc être pensée pour eux."
     ),
     "validation": (
         "Ajouter des services ne suffit pas. Même placés à la meilleure position possible, "
@@ -91,9 +108,62 @@ CONCLUSION = {
 }
 
 
-def _latin1(text):
-    """Ramene un texte a l'encodage des polices de base, hors latin-1 devient un point."""
-    return str(text).encode("latin-1", "replace").decode("latin-1")
+def _register_font(pdf):
+    """Enregistre la police Unicode du rapport et retourne la famille a utiliser.
+
+    Les polices de base de fpdf2 sont limitees a latin-1, ce qui remplace par un point
+    d'interrogation tout signe hors de ce jeu, a commencer par la ligature de Beloeil.
+    Matplotlib livre DejaVu Sans, une police Unicode complete, et il est deja une
+    dependance du projet. Si elle est introuvable, le rapport se produit quand meme avec la
+    police de base et la transcription latin-1, un probleme de police ne doit pas arreter le
+    pipeline.
+    """
+    try:
+        import matplotlib
+
+        folder = os.path.join(matplotlib.get_data_path(), "fonts", "ttf")
+        paths = {
+            style: os.path.join(folder, name) for style, name in UNICODE_FILES.items()
+        }
+        if not all(os.path.exists(path) for path in paths.values()):
+            return BASE_FAMILY
+        for style, path in paths.items():
+            pdf.add_font(UNICODE_FAMILY, style, path)
+        return UNICODE_FAMILY
+    except Exception:  # noqa: BLE001  (repli sur la police de base, jamais bloquant)
+        return BASE_FAMILY
+
+
+def _text(pdf, value):
+    """Texte pret a ecrire, transcrit en latin-1 seulement si la police l'exige."""
+    text = "" if value is None else str(value)
+    if getattr(pdf, "doc_family", BASE_FAMILY) == UNICODE_FAMILY:
+        return text
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
+def _french_number(value, decimal_separator):
+    """Ecrit un nombre a la francaise, virgule decimale et decimales utiles seulement.
+
+    Le guide de redaction du departement demande la virgule comme signe decimal. Il exempte
+    en revanche les tableaux du separateur des milliers, par souci d'esthetique, aucune
+    espace n'est donc inseree ici. Un nombre entier perd sa decimale nulle, un compte de
+    personnes n'a pas a s'afficher avec un zero apres la virgule.
+    """
+    number = float(value)
+    if math.isnan(number) or math.isinf(number):
+        return ""
+    text = f"{number:.{MAX_DECIMALS}f}".rstrip("0").rstrip(".")
+    if text in ("", "-"):
+        text = "0"
+    return text.replace(".", decimal_separator)
+
+
+def _cell_value(pdf, value, decimal_separator):
+    """Contenu d'une case de tableau, les nombres a la francaise et le texte tel quel."""
+    if isinstance(value, numbers.Number) and not isinstance(value, bool):
+        return _text(pdf, _french_number(value, decimal_separator))
+    return _text(pdf, value)
 
 
 def _french_date(today):
@@ -109,7 +179,7 @@ def _usable_width(pdf):
 def _multi(pdf, text, height, align="L"):
     """Ecrit un bloc de texte sur toute la largeur utile depuis la marge gauche."""
     pdf.set_x(pdf.l_margin)
-    pdf.multi_cell(_usable_width(pdf), height, _latin1(text), align=align)
+    pdf.multi_cell(_usable_width(pdf), height, _text(pdf, text), align=align)
 
 
 def _title_page(pdf, config):
@@ -121,10 +191,10 @@ def _title_page(pdf, config):
         logo_w = report["logo_width_mm"]
         pdf.image(logo, x=(pdf.w - logo_w) / 2, y=30, w=logo_w)
     pdf.set_y(75)
-    pdf.set_font("Helvetica", "B", report["font_size_title"])
+    pdf.set_font(pdf.doc_family, "B", report["font_size_title"])
     _multi(pdf, report["title"], 10, "C")
     pdf.ln(8)
-    pdf.set_font("Helvetica", "", report["font_size_subtitle"])
+    pdf.set_font(pdf.doc_family, "", report["font_size_subtitle"])
     # Date locale du poste, obtenue depuis un instant date pour rester sans ambiguite.
     today = datetime.datetime.now(datetime.timezone.utc).astimezone().date()
     lines = [
@@ -139,7 +209,7 @@ def _title_page(pdf, config):
 def _heading(pdf, config, text):
     """Ecrit le titre d'un volet dans la couleur de la configuration."""
     report = config["report"]
-    pdf.set_font("Helvetica", "B", report["font_size_heading"])
+    pdf.set_font(pdf.doc_family, "B", report["font_size_heading"])
     pdf.set_text_color(*report["color_heading"])
     _multi(pdf, text, 9)
     pdf.set_text_color(0, 0, 0)
@@ -148,7 +218,7 @@ def _heading(pdf, config, text):
 
 def _paragraph(pdf, config, text):
     """Ecrit un paragraphe courant."""
-    pdf.set_font("Helvetica", "", config["report"]["font_size_body"])
+    pdf.set_font(pdf.doc_family, "", config["report"]["font_size_body"])
     _multi(pdf, text, 6)
     pdf.ln(2)
 
@@ -161,28 +231,73 @@ def _add_figure(pdf, path):
     pdf.ln(3)
 
 
-def _fit_font(pdf, text, width, style, base_size, min_size):
-    """Choisit la plus grande police qui laisse le texte tenir dans sa case.
-
-    Les titres de colonnes et les identifiants d'aire de diffusion sont longs. La taille
-    descend d'un point a la fois jusqu'a ce que le texte entre, sans passer sous la taille
-    minimale.
-    """
-    for size in range(base_size, min_size - 1, -1):
-        pdf.set_font("Helvetica", style, size)
-        if pdf.get_string_width(text) <= width - 2:
-            return
-    pdf.set_font("Helvetica", style, min_size)
-
-
-def _add_row(pdf, values, width, style, base_size, min_size):
-    """Ecrit une ligne de tableau, chaque case avec sa propre taille de police."""
+def _add_row(pdf, values, widths, style, sizes, decimal_separator):
+    """Ecrit une ligne de tableau, chaque case a la largeur et a la taille de sa colonne."""
     pdf.set_x(pdf.l_margin)
-    for value in values:
-        text = _latin1(value)
-        _fit_font(pdf, text, width, style, base_size, min_size)
-        pdf.cell(width, 6, text, border=1, align="C")
+    for value, width, size in zip(values, widths, sizes):
+        pdf.set_font(pdf.doc_family, style, size)
+        pdf.cell(
+            width, 6, _cell_value(pdf, value, decimal_separator), border=1, align="C"
+        )
     pdf.ln(6)
+
+
+def _widest_at(pdf, title, values, size):
+    """Largeur de la case la plus large d'une colonne a une taille de police donnee.
+
+    Le titre est mesure en gras et les valeurs dans le style courant, comme ils seront
+    ecrits. A taille egale le gras est plus large, c'est donc souvent le titre qui decide.
+    """
+    pdf.set_font(pdf.doc_family, "B", size)
+    widest = pdf.get_string_width(title)
+    pdf.set_font(pdf.doc_family, "", size)
+    for value in values:
+        widest = max(widest, pdf.get_string_width(value))
+    return widest
+
+
+def _column_font_sizes(pdf, df, widths, base_size, min_size, decimal_separator):
+    """Taille de police de chaque colonne, la plus grande qui fait tenir toutes ses cases.
+
+    La taille est choisie par colonne et non par case. Une taille par case donnait un
+    tableau ou deux valeurs voisines d'une meme colonne n'avaient pas la meme hauteur de
+    caractere, ce qui se lit comme un defaut d'impression.
+    """
+    sizes = []
+    for column, width in zip(df.columns, widths):
+        title = _text(pdf, column)
+        values = [_cell_value(pdf, value, decimal_separator) for value in df[column]]
+        chosen = min_size
+        for size in range(base_size, min_size - 1, -1):
+            if _widest_at(pdf, title, values, size) <= width - 2:
+                chosen = size
+                break
+        sizes.append(chosen)
+    return sizes
+
+
+def _column_widths(pdf, df, base_size, total_width, decimal_separator):
+    """Repartit la largeur de la page entre les colonnes selon leur contenu le plus long.
+
+    Des colonnes de largeur egale font tenir un identifiant d'aire de diffusion dans la
+    meme case qu'un seuil en metres. La colonne large descend alors a la taille minimale et
+    finit par tronquer son texte, pendant que la colonne etroite laisse du vide. La largeur
+    demandee par chaque colonne est donc mesuree sur son contenu, puis ramenee au prorata
+    sur la largeur disponible. La somme reste exactement egale a cette largeur.
+    """
+    needs = []
+    for column in df.columns:
+        pdf.set_font(pdf.doc_family, "B", base_size)
+        widest = pdf.get_string_width(_text(pdf, column))
+        pdf.set_font(pdf.doc_family, "", base_size)
+        for value in df[column]:
+            text = _cell_value(pdf, value, decimal_separator)
+            widest = max(widest, pdf.get_string_width(text))
+        needs.append(widest + 2.0)
+    total = sum(needs)
+    if total <= 0:
+        return [total_width / len(needs)] * len(needs)
+    return [total_width * need / total for need in needs]
 
 
 def _in_french(df, config):
@@ -210,30 +325,71 @@ def _add_table(pdf, config, title, df):
     report = config["report"]
     base_size = report["table_font_size"]
     min_size = report["table_min_font_size"]
+    separator = report["decimal_separator"]
     columns = list(df.columns)
-    width = _usable_width(pdf) / len(columns)
-    pdf.set_font("Helvetica", "B", report["font_size_table_title"])
+    widths = _column_widths(pdf, df, base_size, _usable_width(pdf), separator)
+    sizes = _column_font_sizes(pdf, df, widths, base_size, min_size, separator)
+    pdf.set_font(pdf.doc_family, "B", report["font_size_table_title"])
     _multi(pdf, title, 6)
-    _add_row(pdf, columns, width, "B", base_size, min_size)
+    _add_row(pdf, columns, widths, "B", sizes, separator)
     for _, row in df.iterrows():
-        _add_row(
-            pdf, [row[column] for column in columns], width, "", base_size, min_size
-        )
+        _add_row(pdf, [row[column] for column in columns], widths, "", sizes, separator)
     pdf.ln(3)
 
 
 def _add_link(pdf, config, label, url):
     """Ecrit un lien cliquable vers une carte interactive."""
     report = config["report"]
-    pdf.set_font("Helvetica", "U", report["font_size_body"])
+    pdf.set_font(pdf.doc_family, "U", report["font_size_body"])
     pdf.set_text_color(*report["color_link"])
     pdf.set_x(pdf.l_margin)
-    pdf.cell(_usable_width(pdf), 7, _latin1(label), link=url)
+    pdf.cell(_usable_width(pdf), 7, _text(pdf, label), link=url)
     pdf.ln(7)
     pdf.set_text_color(0, 0, 0)
 
 
-def _section(pdf, config, key, figures, tables, links=()):
+LOCATION_NOTE = (
+    "Au même seuil de {threshold} m pour les deux groupes, les aînés sont au contraire "
+    "mieux situés que le reste de la population sur {favorable} des {total} types de "
+    "service, de {gap} {unit} de pourcentage en moyenne. L'écart mesuré plus haut ne vient "
+    "donc pas de l'endroit où vivent les aînés, mais de la distance plus courte qu'ils "
+    "peuvent parcourir. C'est précisément ce que le levier cherche à corriger."
+)
+
+
+def diagnostic_conclusion(config, tables):
+    """Conclusion du diagnostic, completee par la comparaison a seuil commun.
+
+    Le sommaire de couverture mesure aussi chaque groupe au seuil de l'autre. Quand les
+    aines ressortent devant a seuil commun, la phrase le dit, car c'est le fait qui separe
+    un probleme de localisation d'un probleme de distance tolerable. Si le sommaire est
+    absent ou si le fait ne tient pas, la conclusion reste celle de base.
+    """
+    base = CONCLUSION["diagnostic"]
+    summary = tables.get("coverage")
+    if summary is None or len(summary) == 0:
+        return base
+    threshold = config["optimization"]["coverage_threshold_seniors_m"]
+    result = same_threshold_gap(summary, threshold)
+    if result is None:
+        return base
+    favorable, total, gap = result
+    if favorable * 2 <= total or gap <= 0:
+        return base
+    return (
+        base
+        + " "
+        + LOCATION_NOTE.format(
+            threshold=threshold,
+            favorable=favorable,
+            total=total,
+            gap=_french_number(gap, config["report"]["decimal_separator"]),
+            unit="point" if gap < 2 else "points",
+        )
+    )
+
+
+def _section(pdf, config, key, figures, tables, links=(), conclusion=None):
     """Ecrit un volet, titre, introduction, figures, tableaux, liens puis conclusion."""
     pdf.add_page()
     _heading(pdf, config, config["report"]["section_titles"][key])
@@ -244,7 +400,7 @@ def _section(pdf, config, key, figures, tables, links=()):
         _add_table(pdf, config, title, df)
     for label, url in links:
         _add_link(pdf, config, label, url)
-    _paragraph(pdf, config, CONCLUSION[key])
+    _paragraph(pdf, config, conclusion or CONCLUSION[key])
 
 
 def build_report(config, figures, tables, logger=None):
@@ -254,6 +410,12 @@ def build_report(config, figures, tables, logger=None):
     son DataFrame. Le rapport est ecrit au chemin de la configuration.
     """
     pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.doc_family = _register_font(pdf)
+    if pdf.doc_family == BASE_FAMILY and logger is not None:
+        logger.warning(
+            "Police Unicode introuvable, le rapport utilise la police de base et les "
+            "signes hors latin-1 seront remplaces"
+        )
     pdf.set_auto_page_break(True, margin=config["report"]["page_margin_mm"])
     _title_page(pdf, config)
     _section(
@@ -267,6 +429,7 @@ def build_report(config, figures, tables, logger=None):
                 tables.get("comparison"),
             )
         ],
+        conclusion=diagnostic_conclusion(config, tables),
     )
     _section(
         pdf,
