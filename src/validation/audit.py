@@ -60,6 +60,36 @@ def check_required_fields(gdf, required_fields):
     return True, "champs requis presents"
 
 
+def check_expected_counts(gdf, type_field, minimums):
+    """Compare l'effectif observe de chaque type a un minimum plausible declare.
+
+    Les regles precedentes verifient la forme de la donnee, jamais son contenu. Une couche
+    peut avoir le bon CRS, des geometries valides et la bonne emprise tout en ne portant
+    qu'une fraction des entites reellement presentes sur le terrain. C'est le cas des points
+    d'interet d'OpenStreetMap, dont l'etiquetage depend de la contribution benevole.
+
+    Les minimums de config.yaml sont des ordres de grandeur tires de la population de la
+    zone, pas un inventaire de reference. La regle ne certifie donc pas la completude, elle
+    signale les types manifestement sous representes. Elle avertit sans bloquer, un effectif
+    faible est une limite a declarer et non une donnee invalide.
+    """
+    if type_field not in gdf.columns:
+        return False, f"champ {type_field} absent, effectifs non verifiables"
+    counts = gdf[type_field].value_counts().to_dict()
+    thin = {
+        service_type: (counts.get(service_type, 0), minimum)
+        for service_type, minimum in minimums.items()
+        if counts.get(service_type, 0) < minimum
+    }
+    if not thin:
+        return True, f"effectifs plausibles pour les {len(minimums)} type(s) declare(s)"
+    detail = ", ".join(
+        f"{service_type} {observed} au lieu de {minimum} attendu(s)"
+        for service_type, (observed, minimum) in sorted(thin.items())
+    )
+    return False, f"effectif faible, {detail}"
+
+
 def check_zone_overlap(gdf, zone_gdf):
     """Verifie que la couche recouvre bien la zone d'etude."""
     zone_union = zone_gdf.union_all()
@@ -100,16 +130,28 @@ def fix_invalid_geometries(gdf, layer_name, logger):
     return gdf, fixed_count
 
 
-def audit_layer(gdf, layer_name, expected_crs, required_fields=None, zone=None):
-    """Applique toutes les regles d'audit a une couche et retourne les resultats."""
+def audit_layer(
+    gdf,
+    layer_name,
+    expected_crs,
+    required_fields=None,
+    zone=None,
+    expected_counts=None,
+    type_field=None,
+):
+    """Applique toutes les regles d'audit a une couche et retourne les resultats.
+
+    expected_counts et type_field activent la regle de plausibilite des effectifs, la seule
+    qui avertit au lieu de bloquer.
+    """
     rows = []
 
-    def add(rule_name, passed, detail):
+    def add(rule_name, passed, detail, on_failure="echec"):
         rows.append(
             {
                 "layer": layer_name,
                 "rule": rule_name,
-                "status": "ok" if passed else "echec",
+                "status": "ok" if passed else on_failure,
                 "detail": detail,
             }
         )
@@ -124,6 +166,12 @@ def audit_layer(gdf, layer_name, expected_crs, required_fields=None, zone=None):
     if zone is not None:
         add("expected_bounds", *check_bounds(gdf, zone))
         add("zone_overlap", *check_zone_overlap(gdf, zone))
+    if expected_counts and type_field:
+        add(
+            "plausible_counts",
+            *check_expected_counts(gdf, type_field, expected_counts),
+            on_failure="avertissement",
+        )
     return rows
 
 
@@ -143,6 +191,8 @@ def run_audit(entries, report_path, logger):
                 entry["crs"],
                 required_fields=entry.get("required_fields"),
                 zone=entry.get("zone"),
+                expected_counts=entry.get("expected_counts"),
+                type_field=entry.get("type_field"),
             )
         )
     report = pd.DataFrame(all_rows)
@@ -152,18 +202,22 @@ def run_audit(entries, report_path, logger):
         os.makedirs(folder, exist_ok=True)
     report.to_csv(report_path, index=False, encoding="utf-8")
 
+    levels = {"echec": logger.error, "avertissement": logger.warning}
     for row in all_rows:
-        if row["status"] == "echec":
-            logger.error("Audit %s, %s, %s", row["layer"], row["rule"], row["detail"])
-        else:
-            logger.info("Audit %s, %s, %s", row["layer"], row["rule"], row["detail"])
+        write = levels.get(row["status"], logger.info)
+        write("Audit %s, %s, %s", row["layer"], row["rule"], row["detail"])
 
     failure_count = int((report["status"] == "echec").sum())
     if failure_count > 0:
         raise AuditError(
             f"{failure_count} regle(s) d'audit en echec, voir le rapport {report_path}"
         )
-    logger.info("Audit reussi, rapport ecrit dans %s", report_path)
+    warning_count = int((report["status"] == "avertissement").sum())
+    logger.info(
+        "Audit reussi, %d avertissement(s), rapport ecrit dans %s",
+        warning_count,
+        report_path,
+    )
     return report
 
 
@@ -208,6 +262,8 @@ def audit_all_layers(layers, config, logger):
             "crs": crs,
             "required_fields": ["service_type"],
             "zone": zone,
+            "expected_counts": config["data_quality"]["min_service_counts"],
+            "type_field": "service_type",
         },
         {"gdf": layers["residences"], "name": "residences", "crs": crs, "zone": zone},
     ]

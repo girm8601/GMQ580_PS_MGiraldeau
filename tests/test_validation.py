@@ -13,6 +13,7 @@ from src.validation.audit import (
     check_crs,
     check_duplicates,
     check_empty_geometries,
+    check_expected_counts,
     check_required_fields,
     check_valid_geometries,
     run_audit,
@@ -97,6 +98,64 @@ def test_audit_passes_and_writes_report(tmp_path):
     report = run_audit(entries, str(report_path), logger)
     assert (report["status"] == "ok").all()
     assert report_path.exists()
+
+
+def make_typed_gdf():
+    """Couche synthetique de services types, deux pharmacies et un dentiste."""
+    return gpd.GeoDataFrame(
+        {"service_type": ["pharmacy", "pharmacy", "dentist"]},
+        geometry=[Point(0, 0), Point(1, 1), Point(2, 2)],
+        crs="EPSG:2950",
+    )
+
+
+def test_expected_counts_detects_a_thin_type():
+    """Un type sous le minimum plausible doit etre signale et nomme."""
+    passed, detail = check_expected_counts(
+        make_typed_gdf(), "service_type", {"pharmacy": 2, "dentist": 5}
+    )
+    assert passed is False
+    assert "dentist 1 au lieu de 5" in detail
+    assert "pharmacy" not in detail
+
+
+def test_expected_counts_passes_when_every_type_is_plausible():
+    """Des effectifs au dessus du minimum ne doivent rien signaler."""
+    passed, _ = check_expected_counts(
+        make_typed_gdf(), "service_type", {"pharmacy": 2, "dentist": 1}
+    )
+    assert passed is True
+
+
+def test_expected_counts_counts_an_absent_type_as_zero():
+    """Un type declare mais absent de la couche vaut zero, pas une erreur."""
+    passed, detail = check_expected_counts(
+        make_typed_gdf(), "service_type", {"veterinary": 1}
+    )
+    assert passed is False
+    assert "veterinary 0 au lieu de 1" in detail
+
+
+def test_thin_counts_warn_without_blocking_the_pipeline(tmp_path):
+    """Un effectif faible doit avertir et laisser le pipeline continuer.
+
+    Un manque de completude est une limite a declarer, pas une donnee invalide. La regle
+    doit donc produire un avertissement dans le rapport sans lever AuditError.
+    """
+    entries = [
+        {
+            "gdf": make_typed_gdf(),
+            "name": "essential_services",
+            "crs": "EPSG:2950",
+            "expected_counts": {"dentist": 5},
+            "type_field": "service_type",
+        }
+    ]
+    report_path = tmp_path / "audit_report.csv"
+    report = run_audit(entries, str(report_path), logger)
+    warnings = report[report["status"] == "avertissement"]
+    assert list(warnings["rule"]) == ["plausible_counts"]
+    assert not (report["status"] == "echec").any()
 
 
 def make_two_bank_graph():
