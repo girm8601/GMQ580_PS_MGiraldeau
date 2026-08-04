@@ -1,4 +1,4 @@
-# Où vieillir à pied dans la Vallée du Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés
+# Où vieillir à pied dans La Vallée-du-Richelieu, équité d'accès des aînés aux services essentiels et secteurs recommandés
 **Équipe.** Mylène Giraldeau
 
 ![Tests](https://github.com/girm8601/GMQ580_PS_MGiraldeau/actions/workflows/ci.yml/badge.svg)
@@ -17,7 +17,7 @@ Le projet suit trois volets.
 Les résultats visent les municipalités et les décideurs publics, communautaires et privés. Le projet reprend l'approche piétonne du cours GMQ210, avec l'accord de l'enseignant. Il s'arrête au diagnostic et aux recommandations, l'implantation revient aux décideurs. Il n'aborde ni les horaires d'ouverture, ni la taille des établissements, ni un indice de vulnérabilité multicritère.
 
 ## Zone d'étude
-Quatre municipalités riveraines contiguës de la Vallée du Richelieu. Beloeil et McMasterville sont sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est. La rivière n'est franchissable qu'aux ponts, ce qui permet de tester un effet de barrière sur un territoire par ailleurs continu et de taille comparable.
+Quatre municipalités riveraines contiguës de La Vallée-du-Richelieu. Belœil et McMasterville sont sur la rive ouest, Mont-Saint-Hilaire et Otterburn Park sur la rive est. La rivière n'est franchissable qu'aux ponts, ce qui permet de tester un effet de barrière sur un territoire par ailleurs continu et de taille comparable.
 
 La zone est traitée sans tampon. La demande vient des aires de diffusion du Recensement 2021, la plus petite unité pour laquelle tout le recensement est diffusé, de 400 à 700 habitants (Statistique Canada, 2021). Quelques services juste au delà des limites ne sont pas comptés, mais les services se concentrent au cœur des villes et l'effet reste faible.
 
@@ -28,19 +28,25 @@ Chaque source sert à une chose précise.
 - **L'accès.** Le réseau piétonnier porte toutes les distances de marche. Les arrêts et les gares ajoutent le deuxième mode. Les bâtiments et terrains résidentiels donnent le point de départ de chaque déplacement.
 - **La demande et le contexte.** Le recensement et les aires de diffusion répartissent les aînés et le reste de la population. Les limites municipales rattachent chaque secteur à sa ville. Les terrains commerciaux et à développer servent de sites candidats. Les lignes de train et la rivière sont des repères cartographiques.
 
-Un service est retenu s'il répond à un besoin courant, s'il se fréquente de façon répétée dans l'année et s'il est bien recensé dans OpenStreetMap. L'école et la garderie sont conservées même si les aînés les fréquentent peu, car les deux groupes sont comparés sur les mêmes services. C'est le poids d'importance, propre à chaque groupe, qui traduit la différence d'usage.
+Un service est retenu s'il répond à un besoin courant, s'il se fréquente de façon répétée dans l'année et s'il est bien recensé dans OpenStreetMap. L'école et la garderie sont conservées même si les aînés les fréquentent peu, car les deux groupes sont comparés sur les mêmes services. C'est le poids d'importance, propre à chaque groupe, qui traduit la différence d'usage. Ce poids multiplie la fraction de points du palier de distance dans la cote sur 100, être proche d'un service important pèse donc lourd et être loin d'un service mineur pèse peu. Les valeurs viennent des distances observées par motif de déplacement (Yang and Diez-Roux, 2012) et de la pondération par catégorie du Walk Score (s.d.), non d'un jugement personnel. Elles sont dans `importance_seniors` et `importance_rest` de `config.yaml`, chacune commentée.
 
-| Service essentiel | Étiquettes OpenStreetMap |
-|-------------------|--------------------------|
-| Épicerie | `shop=supermarket` |
-| Pharmacie | `amenity=pharmacy`, `healthcare=pharmacy` |
-| Santé | `amenity` hôpital, clinique et médecin, `healthcare` équivalent |
-| Dépanneur | `shop=convenience` |
-| Banque | `amenity=bank` |
-| Dentiste | `amenity=dentist`, `healthcare=dentist` |
-| Vétérinaire | `amenity=veterinary` |
-| École | `amenity=school` |
-| Garderie | `amenity=kindergarten`, `amenity=childcare` |
+| Service essentiel | Étiquettes OpenStreetMap | Poids aînés | Poids reste |
+|-------------------|--------------------------|-------------|-------------|
+| Épicerie | `shop=supermarket` | 1,0 | 1,0 |
+| Pharmacie | `amenity=pharmacy`, `healthcare=pharmacy` | 1,0 | 0,7 |
+| Santé | `amenity` hôpital, clinique et médecin, `healthcare` équivalent | 0,9 | 0,6 |
+| Dépanneur | `shop=convenience` | 0,8 | 0,8 |
+| Banque | `amenity=bank` | 0,6 | 0,2 |
+| Dentiste | `amenity=dentist`, `healthcare=dentist` | 0,5 | 0,4 |
+| Vétérinaire | `amenity=veterinary` | 0,3 | 0,3 |
+| École | `amenity=school` | 0,1 | 0,8 |
+| Garderie | `amenity=kindergarten`, `amenity=childcare` | 0,1 | 0,7 |
+
+Les deux jeux de poids se lisent l'un contre l'autre. L'école et la garderie ferment le classement des aînés et ouvrent presque celui du reste de la population, la banque fait l'inverse. C'est cette différence d'usage, et non la présence des services, que le diagnostic met à l'épreuve.
+
+**Complétude d'OpenStreetMap.** La couche de services compte 89 points pour les quatre municipalités, dont deux vétérinaires et quatre dentistes. L'étiquetage d'OpenStreetMap dépend de la contribution bénévole et un survol d'une carte commerciale montre des établissements des types retenus qui n'y figurent pas. Les règles d'audit du projet vérifient la forme de la donnée, jamais son contenu, une couche peut donc passer toutes les règles en ne portant qu'une partie du terrain. Une règle de plausibilité compare pour cette raison l'effectif de chaque type à un minimum tiré de la population de la zone, `data_quality.min_service_counts`, et avertit sans bloquer. Un effectif faible est une limite à déclarer, pas une donnée invalide.
+
+Deux conséquences suivent. Tous les taux de couverture rapportés sont des **planchers** et non des estimations centrales, la couverture réelle est supérieure d'un montant inconnu. Les conclusions du projet y résistent, un plancher jugé insuffisant le reste quand la vraie valeur est plus haute, et les deux groupes sont comparés sur la même couche, ce qui laisse l'écart entre eux à peu près intact. Un contre-comptage sur un ou deux types, à partir d'un répertoire officiel, chiffrerait ce manque et reste la première suite à donner.
 
 | Source | Format | CRS | Accès |
 |--------|--------|-----|-------|
@@ -171,6 +177,10 @@ flowchart TD
 - **Coordonnées en latitude et longitude (2026-07-28).** Les tableaux donnent la position en degrés décimaux, utilisables sans connaître le CRS du projet.
 - **Trajet réel sans transfert (2026-07-30).** Un déplacement par le transport suit une seule ligne du GTFS. Le calcul cherche la ligne qui minimise la marche totale. Les transferts sont exclus, les correspondances ne sont pas diffusées. Le trajet à bord ne compte pas, le seuil porte sur la marche.
 - **Borne supérieure du gain (2026-07-30).** L'ajout étape par étape est un choix glouton. La couverture maximale place aussi les cinq services d'un coup, ce qui donne le vrai optimum. Même la meilleure implantation laisse la majorité des aînés sans accès au type ajouté.
+- **Couverture mesurée aussi au seuil de l'autre groupe (2026-08-04).** La comparaison d'équité garde chaque groupe à sa propre distance tolérable, c'est son objet même. Elle ne dit pas pour autant si l'écart obtenu vient de cette tolérance ou de l'endroit où vivent les deux groupes. Le sommaire de couverture porte donc aussi chaque groupe au seuil de l'autre. À seuil commun, les aînés ressortent mieux situés, l'écart tient donc à la distance acceptable et non à la localisation, ce qui est exactement ce que le levier corrige. La conclusion du rapport le dit et le chiffre à partir du sommaire.
+- **Plausibilité des effectifs de services (2026-08-04).** Les règles d'audit vérifiaient la forme de la donnée, jamais son contenu. Une règle compare maintenant l'effectif de chaque type de service à un minimum tiré de la population de la zone. Elle avertit sans bloquer, un manque de complétude est une limite à déclarer et non une donnée invalide.
+- **Rapport PDF en police Unicode (2026-08-04).** Les polices de base de fpdf2 sont limitées à latin-1 et remplaçaient par un point d'interrogation tout signe hors de ce jeu, à commencer par la ligature de Belœil. Le rapport utilise DejaVu Sans, livrée avec matplotlib qui est déjà une dépendance, aucun fichier de police n'est donc versionné. Les nombres suivent le guide du département, virgule décimale et pas de séparateur des milliers dans les tableaux. Les colonnes prennent leur largeur du contenu le plus long plutôt qu'une largeur égale, ce qui évite qu'une colonne large tronque son texte pendant qu'une colonne étroite laisse du vide.
+- **Toponymie officielle (2026-08-04).** Les textes affichés suivent la graphie de la Commission de toponymie du Québec, Belœil et La Vallée-du-Richelieu. La clé de jointure reste `Beloeil`, c'est la graphie de Données Québec, l'affichage rétablit la ligature par `report.value_labels`.
 - **Écart d'accrochage au réseau (2026-07-30).** Une maison n'est jamais exactement sur une rue. L'écart entre le point et son nœud vaut 34 mètres en médiane et jusqu'à deux kilomètres en secteur rural. Il compte aux deux bouts de chaque mesure.
 
 ## Difficultés rencontrées
@@ -180,6 +190,13 @@ flowchart TD
 - **Accrochage au réseau.** L'écart entre une résidence et son nœud était ignoré, ce qui donnait de bonnes cotes à des maisons isolées. Il est maintenant compté. Le modèle de couverture maximale regroupe la demande par nœud et par classe de 25 mètres d'écart, ce qui borne son imprécision à cette largeur.
 - **Agrégation du recensement.** Le compte d'aînés d'une aire est réparti sur ses résidences, tout le reste du calcul reste entre points précis. Les services juste au delà des limites ne sont pas comptés, mais ils se concentrent au cœur des villes.
 - **Modélisation simplifiée.** Un seul critère de vulnérabilité, et chaque service d'un même type est traité comme équivalent sans égard à sa taille. Les poids suivent la littérature, sans consultation de la communauté ainée. Une enquête permettrait de les valider, et la configuration centralisée rend cet ajustement immédiat.
+
+## Limites à porter au résultat
+Trois limites tiennent à la donnée disponible et non à la démarche. Elles ne changent pas les conclusions, mais elles en fixent la portée.
+
+- **Une demande répartie également entre les bâtiments.** Les aînés d'une aire de diffusion sont divisés par son nombre de résidences, un immeuble de soixante logements pèse donc autant qu'une maison unifamiliale. Or les résidences pour aînés sont justement des immeubles, et ces immeubles se trouvent plutôt au cœur des villes, là où la couverture est bonne. Le biais va donc dans un sens connu, la couverture ainée réelle est probablement supérieure à celle qui est rapportée. Pondérer chaque bâtiment par sa surface au sol corrigerait le gros de l'écart et reste la suite la plus directe.
+- **Un secteur de logement par ville, tiré de dix polygones.** Toute la zone ne compte que dix terrains à développer étiquetés dans OpenStreetMap, et le meilleur secteur de logement d'une ville n'en contient parfois qu'un seul. Ce volet démontre la méthode, il ne remplace pas un inventaire foncier municipal. Les secteurs d'adresses existantes reposent de leur côté sur plus de 17 000 résidences et ne souffrent pas de cette limite.
+- **Un effet de barrière nul par construction.** À 800 mètres de marche, un aîné d'une rive n'atteint de toute façon pas un service de l'autre rive, les ponts étant distants de plusieurs kilomètres. L'échelle du seuil exclut l'effet avant même de le mesurer. Le résultat confirme donc l'intuition plutôt qu'il ne la teste, et c'est bien pour cela que la piste est écartée. Le tableau des liens traversants garde en revanche son intérêt, il prouve que la franchissabilité des ponts a été vérifiée et non supposée.
 
 ## Installation et exécution
 Tous les paramètres sont dans `config.yaml`, validés par `config_loader.py` avant tout accès aux données. Aucun paramètre n'est codé en dur.
@@ -203,14 +220,58 @@ python download_data.py       # couches OSM, non versionnées
 python main.py                # pipeline complet
 ```
 
-**Avec Docker**
-L'image de base contient déjà GDAL et ses dépendances système, ce qui garantit le même résultat sur toute machine.
+Le pipeline écrit dans `outputs/maps`, `outputs/figures`, `outputs/tables` et le rapport dans `outputs`.
+
+## Exécution avec Docker
+Docker fige le système entier, pas seulement les librairies Python. C'est le seul niveau de reproductibilité qui règle le problème propre à la géomatique, la version de GDAL du système et celle de GDAL vue par Python doivent concorder, sinon un pilote comme GeoPackage devient introuvable. L'image de base `ghcr.io/osgeo/gdal:ubuntu-small-3.8.0` fournit les deux au même niveau, et sa version est épinglée pour que le résultat ne dérive pas.
+
+**1. Construire l'image**, une seule fois, depuis la racine du dépôt.
 ```bash
 docker build -t gmq580_ps_mg .
-docker run --rm -v ${PWD}/data:/app/data -v ${PWD}/outputs:/app/outputs gmq580_ps_mg
+```
+La construction installe GDAL, puis `requirements.txt`, puis copie le code. Compter quelques minutes la première fois. Les fois suivantes, tant que `requirements.txt` ne change pas, seule la copie du code est refaite.
+
+**2. Placer les sources manuelles.** Le conteneur ne télécharge pas le recensement, les limites administratives ni les données exo, ces sources se récupèrent une fois à la main depuis les liens de la section Données et se déposent dans `data/raw`, selon les chemins de `paths.manual_files` dans `config.yaml`.
+
+**3. Régénérer les couches OpenStreetMap**, si `data/processed/osm` est vide. La commande par défaut de l'image est le pipeline, elle se remplace pour lancer un autre script.
+```bash
+docker run --rm ^
+  -v ${PWD}/data:/app/data ^
+  -v ${PWD}/cache:/app/cache ^
+  gmq580_ps_mg python3 download_data.py
 ```
 
-Le pipeline écrit dans `outputs/maps`, `outputs/figures`, `outputs/tables` et le rapport dans `outputs`.
+**4. Lancer le pipeline.**
+```bash
+docker run --rm ^
+  -v ${PWD}/data:/app/data ^
+  -v ${PWD}/outputs:/app/outputs ^
+  -v ${PWD}/logs:/app/logs ^
+  gmq580_ps_mg
+```
+
+**Les commandes ci-dessus sont écrites pour PowerShell**, `${PWD}` et le retour de ligne `^`. Sous Linux, macOS ou Git Bash, remplacer `${PWD}` par `$(pwd)` et `^` par `\`.
+
+**Ce que fait chaque montage.** `-v source:cible` relie un dossier du poste à un dossier du conteneur, ce qui est nécessaire parce que le conteneur est effacé à la fin, `--rm` le supprime dès qu'il a fini.
+
+| Montage | Rôle | Sans lui |
+|---------|------|----------|
+| `data` | Sources manuelles en entrée, couches régénérées en sortie | Le pipeline ne trouve aucune donnée et s'arrête sur un message clair |
+| `outputs` | Cartes, figures, tableaux et rapport PDF | Les résultats sont produits puis perdus avec le conteneur |
+| `logs` | Journal du pipeline, la trace de l'audit et des corrections | Le journal disparaît, seule la console garde l'exécution |
+| `cache` | Cache des requêtes OSMnx vers Overpass | Chaque régénération réinterroge le serveur, plus lent et plus lourd pour lui |
+
+**Vérifier l'image sans lancer le pipeline.** L'image sait rejouer la suite de tests, ce qui vérifie en quelques secondes que le code s'exécute correctement dans le système reconstruit.
+```bash
+docker run --rm gmq580_ps_mg python3 -m pytest tests/ -q
+```
+Aucun montage n'est nécessaire et aucun n'est souhaitable ici. Les tests n'utilisent que des objets synthétiques, le conteneur ne touche donc à aucune donnée ni à aucune sortie du poste. C'est la vérification à faire en premier, avant toute exécution du pipeline.
+
+**Vérifier une exécution du pipeline.** La console se termine par `Pipeline termine, sorties disponibles dans outputs`, et `outputs/rapport_projet.pdf` porte la date du jour. Une source absente, une configuration incomplète ou une règle d'audit en échec donnent un message explicite et un code de sortie non nul, jamais une trace Python brute.
+
+**Attention au montage de `outputs`.** Les bornes de `requirements.txt` laissent une marge de version, le conteneur peut donc installer une version de librairie différente de celle de l'environnement conda et produire des chiffres légèrement différents. Monter `outputs` écrase alors les résultats du poste. Pour comparer les deux environnements sans rien perdre, monter un dossier distinct, `-v ${PWD}/outputs_docker:/app/outputs`.
+
+**Limites connues.** L'image tourne en tant que `root`, les fichiers écrits dans les dossiers montés appartiennent donc à `root` sous Linux. Sous Windows, Docker Desktop demande que le lecteur soit partagé dans ses réglages avant que les montages fonctionnent.
 
 ## Tests et intégration continue
 Les tests ciblent les fonctions où un bug reste silencieux mais fausse le résultat spatial, la reprojection, la validité des géométries, la cote d'accessibilité, les distances et les tableaux. Les données de test sont de petits objets synthétiques construits dans les tests, jamais les données réelles.
@@ -232,11 +293,12 @@ GitHub Actions vérifie `ruff` puis rejoue `pytest` à chaque `push` et `pull re
 | `test_demand.py` | Répartition des aînés et du reste par aire de diffusion |
 | `test_coverage.py` | Couverture par groupe, par mode et par seuil |
 | `test_buildings.py` | Filtrage des bâtiments, cas `yes` croisé avec `landuse=residential` |
-| `test_validation.py` | Règles d'audit, ponts et rivière qui sépare les deux rives |
+| `test_validation.py` | Règles d'audit, plausibilité des effectifs, ponts et rivière qui sépare les deux rives |
 | `test_optimization.py` | Couverture maximale sur une matrice à solution connue |
 | `test_service_addition.py` | Assortiment, regroupement de la demande et borne supérieure |
 | `test_sectors.py` | Meilleure aire par municipalité et rattachement aux villes |
-| `test_metrics.py` | Écart aînés reste, effet d'ajout, effet de barrière et secteurs |
+| `test_metrics.py` | Écart aînés reste, comparaison à seuil commun, effet d'ajout, effet de barrière et secteurs |
+| `test_report.py` | Écriture des nombres en français et conclusion du diagnostic |
 
 ## Références
 Anthropic (2026) Claude [Assistant d'intelligence artificielle générative]. Anthropic, San Francisco [En ligne]. https://claude.ai (outil utilisé en juillet 2026).
@@ -252,6 +314,8 @@ Dijkstra, E.W. (1959) A note on two problems in connexion with graphs. Numerisch
 Organisation mondiale de la Santé (2007) Guide mondial des villes-amies des aînés. Organisation mondiale de la Santé, Genève, 76 p.
 
 Statistique Canada (2021) Aire de diffusion (AD). *In* Dictionnaire, Recensement de la population, 2021, Gouvernement du Canada [En ligne]. https://www12.statcan.gc.ca/census-recensement/2021/ref/dict/az/definition-fra.cfm?ID=geo021 (page consultée le 17 juillet 2026).
+
+Voirin, Y. (2026) GMQ580, Géo-informatique II. Notes de cours. Université de Sherbrooke, Département de géomatique appliquée.
 
 Walk Score (s.d.) Walk Score Methodology [En ligne]. https://www.walkscore.com/methodology.shtml (page consultée le 17 juillet 2026).
 
