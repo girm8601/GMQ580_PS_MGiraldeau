@@ -158,7 +158,7 @@ flowchart TD
 | Validation, ajout de services et effet de barrière écartés | ✅ Complété |
 | Levier, meilleur secteur par municipalité, marche et transport | ✅ Complété |
 | Cartes publiées, tableaux, figures et rapport PDF | ✅ Complété |
-| Rédaction du document écrit | 🔄 En cours |
+| Rédaction du document écrit | ✅ Complété |
 
 ## Décisions méthodologiques
 - **Services essentiels et reprise de GMQ210 (2026-06-23).** La zone était déjà saturée d'arrêts à la demande. Le projet passe donc du transport à l'accès aux services essentiels. Il reprend l'approche piétonne de GMQ210, avec l'accord de l'enseignant, et y ajoute la pondération par la vulnérabilité.
@@ -177,11 +177,11 @@ flowchart TD
 - **Coordonnées en latitude et longitude (2026-07-28).** Les tableaux donnent la position en degrés décimaux, utilisables sans connaître le CRS du projet.
 - **Trajet réel sans transfert (2026-07-30).** Un déplacement par le transport suit une seule ligne du GTFS. Le calcul cherche la ligne qui minimise la marche totale. Les transferts sont exclus, les correspondances ne sont pas diffusées. Le trajet à bord ne compte pas, le seuil porte sur la marche.
 - **Borne supérieure du gain (2026-07-30).** L'ajout étape par étape est un choix glouton. La couverture maximale place aussi les cinq services d'un coup, ce qui donne le vrai optimum. Même la meilleure implantation laisse la majorité des aînés sans accès au type ajouté.
+- **Écart d'accrochage au réseau (2026-07-30).** Une maison n'est jamais exactement sur une rue. L'écart entre le point et son nœud vaut 34 mètres en médiane et jusqu'à deux kilomètres en secteur rural. Il compte aux deux bouts de chaque mesure.
 - **Couverture mesurée aussi au seuil de l'autre groupe (2026-08-04).** La comparaison d'équité garde chaque groupe à sa propre distance tolérable, c'est son objet même. Elle ne dit pas pour autant si l'écart obtenu vient de cette tolérance ou de l'endroit où vivent les deux groupes. Le sommaire de couverture porte donc aussi chaque groupe au seuil de l'autre. À seuil commun, les aînés ressortent mieux situés, l'écart tient donc à la distance acceptable et non à la localisation, ce qui est exactement ce que le levier corrige. La conclusion du rapport le dit et le chiffre à partir du sommaire.
 - **Plausibilité des effectifs de services (2026-08-04).** Les règles d'audit vérifiaient la forme de la donnée, jamais son contenu. Une règle compare maintenant l'effectif de chaque type de service à un minimum tiré de la population de la zone. Elle avertit sans bloquer, un manque de complétude est une limite à déclarer et non une donnée invalide.
 - **Rapport PDF en police Unicode (2026-08-04).** Les polices de base de fpdf2 sont limitées à latin-1 et remplaçaient par un point d'interrogation tout signe hors de ce jeu, à commencer par la ligature de Belœil. Le rapport utilise DejaVu Sans, livrée avec matplotlib qui est déjà une dépendance, aucun fichier de police n'est donc versionné. Les nombres suivent le guide du département, virgule décimale et pas de séparateur des milliers dans les tableaux. Les colonnes prennent leur largeur du contenu le plus long plutôt qu'une largeur égale, ce qui évite qu'une colonne large tronque son texte pendant qu'une colonne étroite laisse du vide.
 - **Toponymie officielle (2026-08-04).** Les textes affichés suivent la graphie de la Commission de toponymie du Québec, Belœil et La Vallée-du-Richelieu. La clé de jointure reste `Beloeil`, c'est la graphie de Données Québec, l'affichage rétablit la ligature par `report.value_labels`.
-- **Écart d'accrochage au réseau (2026-07-30).** Une maison n'est jamais exactement sur une rue. L'écart entre le point et son nœud vaut 34 mètres en médiane et jusqu'à deux kilomètres en secteur rural. Il compte aux deux bouts de chaque mesure.
 - **Retrait de mapclassify (2026-08-04).** La librairie était déclarée dans `requirements.txt` et `environment.yml` sans être importée nulle part. Les cotes qualitatives sont classées à partir des seuils de `config.yaml` et les figures n'utilisent que matplotlib. Une dépendance déclarée mais jamais chargée alourdit l'environnement conda et l'image Docker sans rien apporter, elle est retirée. `rtree` reste en place comme index de repli, l'index effectivement utilisé par geopandas est celui de shapely depuis shapely 2.0.
 
 ## Difficultés rencontrées
